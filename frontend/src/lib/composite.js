@@ -60,3 +60,32 @@ export function compositeBones({
 
   return out;
 }
+
+/**
+ * Linearly interpolate between two pose maps.
+ *
+ * Used for two things: smoothing preset switches so a pose change eases in
+ * rather than snapping, and blending animation-clip output against a static
+ * pose. A bone present in only one side is interpolated against zero rotation,
+ * so poses that touch different bone sets still blend cleanly.
+ *
+ * Euler lerp rather than quaternion slerp is deliberate — these are small
+ * rotations on a humanoid rig, and the difference is not visible at this scale.
+ */
+export function lerpPoses(a = {}, b = {}, t) {
+  const k = Math.max(0, Math.min(1, t));
+  const zero = { x: 0, y: 0, z: 0 };
+  const out = {};
+
+  for (const bone of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    const from = a[bone] ?? zero;
+    const to = b[bone] ?? zero;
+    out[bone] = {
+      x: from.x + (to.x - from.x) * k,
+      y: from.y + (to.y - from.y) * k,
+      z: from.z + (to.z - from.z) * k,
+    };
+  }
+
+  return out;
+}

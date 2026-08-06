@@ -13,4 +13,5 @@ export const DEFAULTS = {
   headDriftSpeed: 0.35,
   breathAmplitude: 0.018,
   breathRate: 0.25,
+  poseTransitionMs: 400,
 };

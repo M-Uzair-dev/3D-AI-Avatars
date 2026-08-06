@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { compositeBones } from './composite.js';
+import { compositeBones, lerpPoses } from './composite.js';
 import { POSES, POSE_NAMES } from './poses.js';
 
 const base = {
@@ -117,5 +117,48 @@ describe('compositeBones', () => {
         attenuation: 0.4,
       }),
     ).not.toThrow();
+  });
+});
+
+describe('lerpPoses', () => {
+  const a = { head: { x: 0, y: 0, z: 0 }, chest: { x: 0, y: 0, z: 0 } };
+  const b = { head: { x: 1, y: 2, z: 4 }, chest: { x: 1, y: 1, z: 1 } };
+
+  it('returns the first pose at t=0', () => {
+    expect(lerpPoses(a, b, 0)).toEqual(a);
+  });
+
+  it('returns the second pose at t=1', () => {
+    expect(lerpPoses(a, b, 1)).toEqual(b);
+  });
+
+  it('interpolates every axis at the midpoint', () => {
+    expect(lerpPoses(a, b, 0.5).head).toEqual({ x: 0.5, y: 1, z: 2 });
+  });
+
+  it('clamps t outside 0..1', () => {
+    expect(lerpPoses(a, b, -3)).toEqual(a);
+    expect(lerpPoses(a, b, 7)).toEqual(b);
+  });
+
+  it('treats a bone missing from one pose as zero rotation', () => {
+    const out = lerpPoses({ head: { x: 1, y: 0, z: 0 } }, {}, 0.5);
+    expect(out.head).toEqual({ x: 0.5, y: 0, z: 0 });
+  });
+
+  it('includes bones present in only one pose', () => {
+    const out = lerpPoses({ head: { x: 1, y: 0, z: 0 } }, { jaw: { x: 2, y: 0, z: 0 } }, 0.5);
+    expect(out.head).toBeDefined();
+    expect(out.jaw).toBeDefined();
+  });
+
+  it('does not mutate its inputs', () => {
+    lerpPoses(a, b, 0.5);
+    expect(a.head.x).toBe(0);
+    expect(b.head.x).toBe(1);
+  });
+
+  it('tolerates two empty poses', () => {
+    expect(lerpPoses({}, {}, 0.5)).toEqual({});
   });
 });

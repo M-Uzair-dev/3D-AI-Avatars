@@ -6,7 +6,7 @@ import { Vector3 } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { MODEL_URL, VISEMES, DEFAULTS } from '@/lib/constants.js';
-import { compositeBones } from '@/lib/composite.js';
+import { compositeBones, lerpPoses } from '@/lib/composite.js';
 import { POSES } from '@/lib/poses.js';
 import { useAvatarStore } from '@/stores/avatarStore.js';
 import { useVisemePlayback } from '@/hooks/useVisemePlayback.js';
@@ -18,6 +18,9 @@ export default function VrmAvatar({ onLoaded, onProgress, onError }) {
   const stepIdle = useIdleMotion();
   const lookTarget = useRef(new Vector3());
   const elapsed = useRef(0);
+  const currentPose = useRef(null);
+  const prevPoseName = useRef(null);
+  const poseBlend = useRef(1);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,8 +70,30 @@ export default function VrmAvatar({ onLoaded, onProgress, onError }) {
     // ---------- BONES ----------
     const { blink, deltas } = stepIdle({ nowMs, tSec: elapsed.current, idle: s.idle });
 
+    // Ease between presets rather than snapping. currentPose holds where we
+    // actually are; the target is where the store says we should be.
+    const targetPose = POSES[s.poseName] ?? {};
+    if (prevPoseName.current !== s.poseName) {
+      currentPose.current = currentPose.current ?? targetPose;
+      prevPoseName.current = s.poseName;
+      poseBlend.current = 0;
+    }
+    if (poseBlend.current < 1) {
+      poseBlend.current = Math.min(
+        1,
+        poseBlend.current + (dt * 1000) / DEFAULTS.poseTransitionMs,
+      );
+      currentPose.current = lerpPoses(
+        currentPose.current ?? targetPose,
+        targetPose,
+        poseBlend.current,
+      );
+    } else {
+      currentPose.current = targetPose;
+    }
+
     const bones = compositeBones({
-      pose: POSES[s.poseName] ?? {},
+      pose: currentPose.current,
       idleDeltas: deltas,
       manualOverrides: s.manualBones,
       speaking,
