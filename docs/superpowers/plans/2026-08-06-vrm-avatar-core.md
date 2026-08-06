@@ -1855,8 +1855,10 @@ describe('breathDelta', () => {
   });
 
   it('actually varies over time', () => {
+    // Sample at a quarter period, not a half: at rate 0.25, t=2 lands on
+    // sin(pi) which equals sin(0), so comparing t=0 to t=2 can never pass.
     const a = breathDelta(0, 0.02, 0.25).x;
-    const b = breathDelta(2, 0.02, 0.25).x;
+    const b = breathDelta(1, 0.02, 0.25).x;
     expect(a).not.toBeCloseTo(b, 4);
   });
 });
