@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { compositeBones, lerpPoses } from './composite.js';
 import { POSES, POSE_NAMES } from './poses.js';
+import { HUMANOID_BONES } from './vrmIntrospect.js';
 
 const base = {
   pose: { head: { x: 0, y: 0, z: 0 }, chest: { x: 0.1, y: 0, z: 0 } },
@@ -32,6 +33,35 @@ describe('poses', () => {
     for (const [name, pose] of Object.entries(POSES)) {
       for (const [bone, rot] of Object.entries(pose)) {
         expect(Object.keys(rot).sort(), `${name}.${bone}`).toEqual(['x', 'y', 'z']);
+      }
+    }
+  });
+
+  it('defines all seven presets', () => {
+    for (const name of [
+      't-pose', 'relaxed', 'arms-crossed', 'hands-on-hips',
+      'waving', 'pointing', 'thinking',
+    ]) {
+      expect(POSES[name], `missing pose: ${name}`).toBeDefined();
+    }
+    expect(POSE_NAMES).toHaveLength(7);
+  });
+
+  it('only references real VRM humanoid bone names', () => {
+    const valid = new Set(HUMANOID_BONES);
+    for (const [name, pose] of Object.entries(POSES)) {
+      for (const bone of Object.keys(pose)) {
+        expect(valid.has(bone), `${name} references unknown bone: ${bone}`).toBe(true);
+      }
+    }
+  });
+
+  it('keeps every rotation within one full turn', () => {
+    for (const [name, pose] of Object.entries(POSES)) {
+      for (const [bone, rot] of Object.entries(pose)) {
+        for (const axis of ['x', 'y', 'z']) {
+          expect(Math.abs(rot[axis]), `${name}.${bone}.${axis}`).toBeLessThan(Math.PI * 2);
+        }
       }
     }
   });
