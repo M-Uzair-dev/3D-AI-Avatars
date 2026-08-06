@@ -11,3 +11,6 @@ node_modules/
 # Next.js build output
 .next/
 out/
+
+# Disabled nested repo from create-next-app (kept for recovery)
+frontend/.git.disabled/
