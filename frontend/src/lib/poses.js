@@ -38,11 +38,15 @@ export const POSES = {
     head: { ...ZERO },
   },
 
+  // Upper arms held close to the body, forearms folded up across the chest so
+  // each hand tucks under the opposite arm. The previous values let the hands
+  // meet at the waist instead, which reads as "clasped", not "crossed": the
+  // upper arms were too far out and the forearms too low.
   'arms-crossed': {
-    leftUpperArm: { x: 0, y: -0.35, z: 1.15 },
-    rightUpperArm: { x: 0, y: 0.35, z: -1.15 },
-    leftLowerArm: { x: 0, y: -1.5, z: 0.2 },
-    rightLowerArm: { x: 0, y: 1.5, z: -0.2 },
+    leftUpperArm: { x: 0, y: -0.55, z: 1.35 },
+    rightUpperArm: { x: 0, y: 0.55, z: -1.35 },
+    leftLowerArm: { x: 0, y: -1.85, z: -0.35 },
+    rightLowerArm: { x: 0, y: 1.85, z: 0.35 },
     spine: { x: 0.02, y: 0, z: 0 },
     chest: { x: 0, y: 0, z: 0 },
     head: { x: 0, y: 0, z: 0 },
@@ -69,12 +73,17 @@ export const POSES = {
     head: { x: 0, y: 0.1, z: 0 },
   },
 
-  // Left arm down, right arm angled forward toward the viewer.
+  // Left arm down, right arm raised to horizontal and swung forward.
+  //
+  // The z here is near zero on purpose: z is the up/down axis, so the previous
+  // -1.0 held the arm at the side and the pose pointed at nothing. Forward
+  // travel is the y term, whose sign is not yet confirmed against the model —
+  // if the arm swings behind her, negate it.
   pointing: {
     leftUpperArm: { x: 0, y: 0, z: 1.25 },
-    rightUpperArm: { x: -0.15, y: -0.4, z: -1.0 },
+    rightUpperArm: { x: 0, y: 1.4, z: -0.15 },
     leftLowerArm: { x: 0, y: -0.15, z: 0.15 },
-    rightLowerArm: { x: 0, y: 0.2, z: -0.1 },
+    rightLowerArm: { x: 0, y: 0.1, z: 0 },
     spine: { x: 0, y: -0.05, z: 0 },
     chest: { x: 0, y: 0, z: 0 },
     head: { x: 0, y: -0.15, z: 0 },
