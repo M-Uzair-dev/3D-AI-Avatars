@@ -5,12 +5,14 @@ import SpeechTab from './SpeechTab.jsx';
 import IdleTab from './IdleTab.jsx';
 import ExpressionTab from './ExpressionTab.jsx';
 import PoseTab from './PoseTab.jsx';
+import DebugTab from './DebugTab.jsx';
 
 const TABS = [
   { id: 'speech', label: 'Speech', Component: SpeechTab },
   { id: 'expressions', label: 'Expressions', Component: ExpressionTab },
   { id: 'pose', label: 'Pose', Component: PoseTab },
   { id: 'idle', label: 'Idle', Component: IdleTab },
+  { id: 'debug', label: 'Debug', Component: DebugTab },
 ];
 
 export default function ControlPanel({ vrm }) {
