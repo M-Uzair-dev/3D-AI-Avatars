@@ -1,0 +1,13 @@
+# SDD scratch workspace
+.superpowers/
+
+# VRM models and animations — large user-supplied binaries
+*.vrm
+*.vrma
+
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
