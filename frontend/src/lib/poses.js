@@ -23,11 +23,16 @@ export const POSES = {
   },
 
   // Default. Arms down and slightly away from the body, elbows softly bent.
+  //
+  // Sign convention, confirmed by eye against a real model: on the LEFT arm a
+  // POSITIVE z rotates the arm down toward the body, and negative raises it.
+  // The right arm mirrors. Getting this backwards puts the avatar in a
+  // permanent cheer, which is exactly what the first pass did.
   relaxed: {
-    leftUpperArm: { x: 0, y: 0, z: -1.25 },
-    rightUpperArm: { x: 0, y: 0, z: 1.25 },
-    leftLowerArm: { x: 0, y: -0.15, z: -0.15 },
-    rightLowerArm: { x: 0, y: 0.15, z: 0.15 },
+    leftUpperArm: { x: 0, y: 0, z: 1.25 },
+    rightUpperArm: { x: 0, y: 0, z: -1.25 },
+    leftLowerArm: { x: 0, y: -0.15, z: 0.15 },
+    rightLowerArm: { x: 0, y: 0.15, z: -0.15 },
     spine: { x: 0.02, y: 0, z: 0 },
     chest: { ...ZERO },
     head: { ...ZERO },

@@ -706,58 +706,68 @@ Insert these into the `POSES` object, after `relaxed`:
 
 ```js
   'arms-crossed': {
-    leftUpperArm: { x: 0, y: -0.35, z: -1.15 },
-    rightUpperArm: { x: 0, y: 0.35, z: 1.15 },
-    leftLowerArm: { x: 0, y: -1.5, z: -0.2 },
-    rightLowerArm: { x: 0, y: 1.5, z: 0.2 },
+    leftUpperArm: { x: 0, y: -0.35, z: 1.15 },
+    rightUpperArm: { x: 0, y: 0.35, z: -1.15 },
+    leftLowerArm: { x: 0, y: -1.5, z: 0.2 },
+    rightLowerArm: { x: 0, y: 1.5, z: -0.2 },
     spine: { x: 0.02, y: 0, z: 0 },
     chest: { x: 0, y: 0, z: 0 },
     head: { x: 0, y: 0, z: 0 },
   },
 
   'hands-on-hips': {
-    leftUpperArm: { x: 0, y: -0.5, z: -1.0 },
-    rightUpperArm: { x: 0, y: 0.5, z: 1.0 },
-    leftLowerArm: { x: 0, y: -1.4, z: -0.5 },
-    rightLowerArm: { x: 0, y: 1.4, z: 0.5 },
+    leftUpperArm: { x: 0, y: -0.5, z: 1.0 },
+    rightUpperArm: { x: 0, y: 0.5, z: -1.0 },
+    leftLowerArm: { x: 0, y: -1.4, z: 0.5 },
+    rightLowerArm: { x: 0, y: 1.4, z: -0.5 },
     spine: { x: 0, y: 0, z: 0 },
     chest: { x: 0, y: 0, z: 0 },
     head: { x: 0, y: 0, z: 0 },
   },
 
+  // Left arm down, right arm raised above horizontal.
   waving: {
-    leftUpperArm: { x: 0, y: 0, z: -1.25 },
-    rightUpperArm: { x: 0, y: 0, z: 0.5 },
-    leftLowerArm: { x: 0, y: -0.15, z: -0.15 },
+    leftUpperArm: { x: 0, y: 0, z: 1.25 },
+    rightUpperArm: { x: 0, y: 0, z: 0.6 },
+    leftLowerArm: { x: 0, y: -0.15, z: 0.15 },
     rightLowerArm: { x: 0, y: 0.6, z: 0.9 },
     spine: { x: 0, y: 0, z: 0 },
     chest: { x: 0, y: 0, z: 0 },
     head: { x: 0, y: 0.1, z: 0 },
   },
 
+  // Left arm down, right arm angled forward toward the viewer.
   pointing: {
-    leftUpperArm: { x: 0, y: 0, z: -1.25 },
-    rightUpperArm: { x: -0.15, y: -0.4, z: 1.0 },
-    leftLowerArm: { x: 0, y: -0.15, z: -0.15 },
-    rightLowerArm: { x: 0, y: 0.2, z: 0.1 },
+    leftUpperArm: { x: 0, y: 0, z: 1.25 },
+    rightUpperArm: { x: -0.15, y: -0.4, z: -1.0 },
+    leftLowerArm: { x: 0, y: -0.15, z: 0.15 },
+    rightLowerArm: { x: 0, y: 0.2, z: -0.1 },
     spine: { x: 0, y: -0.05, z: 0 },
     chest: { x: 0, y: 0, z: 0 },
     head: { x: 0, y: -0.15, z: 0 },
   },
 
+  // Left arm down, right forearm folded up toward the chin.
   thinking: {
-    leftUpperArm: { x: 0, y: 0, z: -1.3 },
-    rightUpperArm: { x: 0, y: -0.3, z: 0.75 },
-    leftLowerArm: { x: 0, y: -0.2, z: -0.2 },
-    rightLowerArm: { x: 0, y: 1.3, z: 0.9 },
+    leftUpperArm: { x: 0, y: 0, z: 1.3 },
+    rightUpperArm: { x: 0, y: -0.3, z: -0.75 },
+    leftLowerArm: { x: 0, y: -0.2, z: 0.2 },
+    rightLowerArm: { x: 0, y: 1.3, z: -0.9 },
     spine: { x: 0.03, y: 0, z: 0 },
     chest: { x: 0, y: 0, z: 0 },
     head: { x: 0.12, y: 0.18, z: 0.08 },
   },
 ```
 
-These are eyeball-tuned starting values. Tune them in the Pose tab and use
-**Copy Pose JSON** (Task 5) to paste refined numbers back here.
+**Sign convention**, established by eye against the real model during Plan 1: on
+the **left** arm a positive `z` rotates it **down** toward the body; the right arm
+mirrors. Plan 1's first pass had this inverted and stood the avatar in a permanent
+cheer — the values above already carry the correction.
+
+The non-`z` components are still guesses and **will need tuning**. That is exactly
+what Task 5's per-bone sliders and **Copy Pose JSON** are for: adjust in the panel,
+paste the result back here. Expect to do this at least for `arms-crossed` and
+`thinking`, whose forearm folds are the hardest to guess blind.
 
 - [ ] **Step 4: Run tests and confirm they pass**
 
