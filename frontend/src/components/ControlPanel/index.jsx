@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import SpeechTab from './SpeechTab.jsx';
 import IdleTab from './IdleTab.jsx';
+import ExpressionTab from './ExpressionTab.jsx';
 
 const TABS = [
   { id: 'speech', label: 'Speech', Component: SpeechTab },
+  { id: 'expressions', label: 'Expressions', Component: ExpressionTab },
   { id: 'idle', label: 'Idle', Component: IdleTab },
 ];
 
