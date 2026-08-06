@@ -2143,12 +2143,13 @@ export default function VrmAvatar({ onLoaded, onProgress, onError }) {
 ```jsx
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { textToVisemes, timelineDuration } from '@/lib/textToVisemes.js';
 import { useAvatarStore } from '@/stores/avatarStore.js';
 
 export default function SpeechInput() {
   const [text, setText] = useState('Hello there. I am a talking avatar, and my mouth moves with the words.');
+  const stopTimer = useRef(null);
   const speak = useAvatarStore((s) => s.speak);
   const stopSpeaking = useAvatarStore((s) => s.stopSpeaking);
   const stiffness = useAvatarStore((s) => s.stiffness);
@@ -2159,10 +2160,15 @@ export default function SpeechInput() {
   const handleSpeak = () => {
     const timeline = textToVisemes(text, { rate });
     if (timeline.length === 0) return;
+    // Cancel any pending stop, or the previous utterance's timer will fire
+    // mid-sentence and silence this one. clearTimeout(null) is a safe no-op.
+    clearTimeout(stopTimer.current);
     speak(timeline);
     // No audio to end the utterance, so schedule the stop ourselves.
-    setTimeout(stopSpeaking, timelineDuration(timeline) + 200);
+    stopTimer.current = setTimeout(stopSpeaking, timelineDuration(timeline) + 200);
   };
+
+  useEffect(() => () => clearTimeout(stopTimer.current), []);
 
   return (
     <div className="flex flex-col gap-4 p-4 text-sm text-zinc-300">
