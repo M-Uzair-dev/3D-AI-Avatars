@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { textToVisemes, timelineDuration } from '@/lib/textToVisemes.js';
 import { useAvatarStore } from '@/stores/avatarStore.js';
 
@@ -12,14 +12,18 @@ export default function SpeechInput() {
   const setStiffness = useAvatarStore((s) => s.setStiffness);
   const rate = useAvatarStore((s) => s.rate);
   const setRate = useAvatarStore((s) => s.setRate);
+  const stopTimer = useRef(null);
 
   const handleSpeak = () => {
     const timeline = textToVisemes(text, { rate });
     if (timeline.length === 0) return;
+    clearTimeout(stopTimer.current);
     speak(timeline);
     // No audio to end the utterance, so schedule the stop ourselves.
-    setTimeout(stopSpeaking, timelineDuration(timeline) + 200);
+    stopTimer.current = setTimeout(stopSpeaking, timelineDuration(timeline) + 200);
   };
+
+  useEffect(() => () => clearTimeout(stopTimer.current), []);
 
   return (
     <div className="flex flex-col gap-4 p-4 text-sm text-zinc-300">
