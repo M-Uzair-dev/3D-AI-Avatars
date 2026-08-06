@@ -11,6 +11,7 @@ import { POSES } from '@/lib/poses.js';
 import { useAvatarStore } from '@/stores/avatarStore.js';
 import { useVisemePlayback } from '@/hooks/useVisemePlayback.js';
 import { useIdleMotion } from '@/hooks/useIdleMotion.js';
+import { useVrmAnimations } from '@/hooks/useVrmAnimations.js';
 
 export default function VrmAvatar({ onLoaded, onProgress, onError }) {
   const [vrm, setVrm] = useState(null);
@@ -21,6 +22,8 @@ export default function VrmAvatar({ onLoaded, onProgress, onError }) {
   const currentPose = useRef(null);
   const prevPoseName = useRef(null);
   const poseBlend = useRef(1);
+  const { mixerRef, actionRef, loadClip, stop } = useVrmAnimations(vrm);
+  const clipUrlRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,8 +70,33 @@ export default function VrmAvatar({ onLoaded, onProgress, onError }) {
     const s = useAvatarStore.getState();
     const speaking = s.speechStartedAt !== null;
 
+    // Load or unload a clip when the store's selection changes.
+    if (s.clipUrl !== clipUrlRef.current) {
+      clipUrlRef.current = s.clipUrl;
+      if (s.clipUrl) loadClip(s.clipUrl);
+      else stop();
+    }
+
     // ---------- BONES ----------
     const { blink, deltas } = stepIdle({ nowMs, tSec: elapsed.current, idle: s.idle });
+
+    // The mixer writes straight to the normalized bones, so run it first and
+    // capture what it produced. Compositing first would overwrite the clip.
+    let clipPose = null;
+    if (actionRef.current && mixerRef.current) {
+      mixerRef.current.update(dt);
+      clipPose = {};
+      for (const name of Object.keys(POSES[s.poseName] ?? {})) {
+        const node = vrm.humanoid?.getNormalizedBoneNode(name);
+        if (node) {
+          clipPose[name] = {
+            x: node.rotation.x,
+            y: node.rotation.y,
+            z: node.rotation.z,
+          };
+        }
+      }
+    }
 
     // Ease between presets rather than snapping. currentPose holds where we
     // actually are; the target is where the store says we should be.
@@ -93,7 +121,9 @@ export default function VrmAvatar({ onLoaded, onProgress, onError }) {
     }
 
     const bones = compositeBones({
-      pose: currentPose.current,
+      pose: clipPose
+        ? lerpPoses(currentPose.current, clipPose, s.clipWeight)
+        : currentPose.current,
       idleDeltas: deltas,
       manualOverrides: s.manualBones,
       speaking,

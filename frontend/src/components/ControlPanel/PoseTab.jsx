@@ -1,10 +1,11 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { POSE_NAMES, POSES } from '@/lib/poses.js';
 import { listBones } from '@/lib/vrmIntrospect.js';
 import { compositeBones } from '@/lib/composite.js';
 import { useAvatarStore } from '@/stores/avatarStore.js';
+import Slider from './Slider.jsx';
 
 const AXES = ['x', 'y', 'z'];
 const ZERO = { x: 0, y: 0, z: 0 };
@@ -17,6 +18,18 @@ export default function PoseTab({ vrm }) {
   const clearBone = useAvatarStore((s) => s.clearBone);
   const clearAllBones = useAvatarStore((s) => s.clearAllBones);
   const [copied, setCopied] = useState(false);
+  const clipUrl = useAvatarStore((s) => s.clipUrl);
+  const setClip = useAvatarStore((s) => s.setClip);
+  const clipWeight = useAvatarStore((s) => s.clipWeight);
+  const setClipWeight = useAvatarStore((s) => s.setClipWeight);
+  const [clips, setClips] = useState([]);
+
+  useEffect(() => {
+    fetch('/api/animations')
+      .then((r) => r.json())
+      .then((d) => setClips(d.files ?? []))
+      .catch(() => setClips([]));
+  }, []);
 
   // Only the bones this model actually has.
   const bones = useMemo(() => listBones(vrm), [vrm]);
@@ -61,6 +74,53 @@ export default function PoseTab({ vrm }) {
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="flex flex-col gap-2 border-t border-zinc-800 pt-4">
+        <span className="text-xs text-zinc-500">Animation clip</span>
+        {clips.length === 0 ? (
+          <p className="text-[11px] leading-relaxed text-zinc-600">
+            No clips found. Drop <code className="text-zinc-500">.vrma</code> files
+            into <code className="text-zinc-500">frontend/public/animations/</code>
+            and reload.
+          </p>
+        ) : (
+          <>
+            <div className="flex flex-col gap-1.5">
+              <button
+                onClick={() => setClip(null)}
+                className={`rounded border px-2 py-1.5 text-left text-[11px] transition-colors ${
+                  clipUrl === null
+                    ? 'border-zinc-300 bg-zinc-200 text-zinc-900'
+                    : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'
+                }`}
+              >
+                none
+              </button>
+              {clips.map((file) => {
+                const url = `/animations/${file}`;
+                return (
+                  <button
+                    key={file}
+                    onClick={() => setClip(url)}
+                    className={`rounded border px-2 py-1.5 text-left text-[11px] transition-colors ${
+                      clipUrl === url
+                        ? 'border-zinc-300 bg-zinc-200 text-zinc-900'
+                        : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'
+                    }`}
+                  >
+                    {file}
+                  </button>
+                );
+              })}
+            </div>
+            <Slider
+              label="Clip blend" value={clipWeight} min={0} max={1} step={0.01}
+              onChange={setClipWeight}
+              hint="0 is the static pose, 1 is the clip."
+            />
+          </>
+        )}
       </div>
 
       <div className="flex gap-2">

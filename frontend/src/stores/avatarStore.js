@@ -20,6 +20,10 @@ const initialState = {
   poseName: DEFAULT_POSE,
   manualBones: {},
 
+  // Animation clip
+  clipUrl: null,
+  clipWeight: 1,
+
   // Idle — on/off plus the tunable parameters for each behaviour.
   idle: {
     blink: true,
@@ -80,6 +84,9 @@ export const useAvatarStore = create((set) => ({
     }),
 
   clearAllBones: () => set({ manualBones: {} }),
+
+  setClip: (clipUrl) => set({ clipUrl }),
+  setClipWeight: (clipWeight) => set({ clipWeight }),
 
   setIdle: (key, value) =>
     set((state) => ({ idle: { ...state.idle, [key]: value } })),
