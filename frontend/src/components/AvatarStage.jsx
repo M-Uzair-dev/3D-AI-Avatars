@@ -1,6 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { useCallback, useState } from 'react';
+import MissingModelNotice from './MissingModelNotice.jsx';
 
 // three.js touches `window` at import time, so the Canvas subtree must never be
 // server-rendered. `ssr: false` is only permitted inside a 'use client' file —
@@ -14,11 +16,29 @@ const Scene = dynamic(() => import('./Scene.jsx'), {
   ),
 });
 
+const VrmAvatar = dynamic(() => import('./VrmAvatar.jsx'), { ssr: false });
+
 export default function AvatarStage() {
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState(null);
+  const [, setVrm] = useState(null);
+
+  const handleLoaded = useCallback((loaded) => {
+    setVrm(loaded);
+    setProgress(1);
+  }, []);
+
   return (
     <div className="flex h-screen w-full flex-col bg-zinc-900 lg:flex-row">
       <div className="relative min-h-0 flex-1">
-        <Scene />
+        <Scene>
+          <VrmAvatar
+            onLoaded={handleLoaded}
+            onProgress={setProgress}
+            onError={setError}
+          />
+        </Scene>
+        <MissingModelNotice progress={progress} error={error} />
       </div>
     </div>
   );

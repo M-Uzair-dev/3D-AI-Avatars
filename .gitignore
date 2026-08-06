@@ -14,3 +14,6 @@ out/
 
 # Disabled nested repo from create-next-app (kept for recovery)
 frontend/.git.disabled/
+
+# Playwright MCP scratch
+.playwright-mcp/
