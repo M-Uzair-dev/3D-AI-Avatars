@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useCallback, useState } from 'react';
 import MissingModelNotice from './MissingModelNotice.jsx';
-import SpeechInput from './SpeechInput.jsx';
+import ControlPanel from './ControlPanel/index.jsx';
 
 // three.js touches `window` at import time, so the Canvas subtree must never be
 // server-rendered. `ssr: false` is only permitted inside a 'use client' file —
@@ -22,7 +22,7 @@ const VrmAvatar = dynamic(() => import('./VrmAvatar.jsx'), { ssr: false });
 export default function AvatarStage() {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState(null);
-  const [, setVrm] = useState(null);
+  const [vrm, setVrm] = useState(null);
 
   const handleLoaded = useCallback((loaded) => {
     setVrm(loaded);
@@ -41,8 +41,8 @@ export default function AvatarStage() {
         </Scene>
         <MissingModelNotice progress={progress} error={error} />
       </div>
-      <aside className="w-full shrink-0 overflow-y-auto border-t border-zinc-800 bg-zinc-900 lg:h-screen lg:w-80 lg:border-l lg:border-t-0">
-        <SpeechInput />
+      <aside className="w-full shrink-0 border-t border-zinc-800 bg-zinc-900 lg:h-screen lg:w-80 lg:border-l lg:border-t-0">
+        <ControlPanel vrm={vrm} />
       </aside>
     </div>
   );
