@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { readdirSync } from 'node:fs';
 import {
   MODEL_URL, GREETING_CLIP, VISEMES, DEFAULTS, clipLabel, MODEL_NAMES, modelName, modelBlurb,
-  modelVoice, modelVoiceForUrl,
+  modelVoice, modelVoiceForUrl, modelVoiceFallback, modelVoiceFallbackForUrl, voiceFallbackFor,
 } from './constants.js';
 import { parseVoiceId } from './voiceId.js';
 import { modelPalette, modelPaletteForUrl } from './constants.js';
@@ -140,6 +140,101 @@ describe('model voices', () => {
     expect(modelVoiceForUrl('/nope.vrm')).toBeNull();
     expect(modelVoiceForUrl(null)).toBeNull();
     expect(modelVoiceForUrl(undefined)).toBeNull();
+  });
+
+  describe('voice fallbacks', () => {
+    // The three characters whose voices come from the Voice Library rather than
+    // the premade 21. That distinction is the whole reason this feature exists:
+    // a premade voice works on any plan, a Library one depends on the account's
+    // plan and on the voice still being published.
+    const LIBRARY_MODELS = ['free-2.vrm', 'free-3.vrm', 'free-5.vrm'];
+
+    it('gives every Library-voiced model a fallback, and no other model one', () => {
+      for (const [file, entry] of Object.entries(MODEL_NAMES)) {
+        if (LIBRARY_MODELS.includes(file)) {
+          expect(entry.voiceFallback, `${file} has no fallback voice`).toBeTruthy();
+        } else {
+          // Not an oversight to fix later. A premade row has nothing to fall
+          // back FROM, so a fallback on one is a second id to keep correct for
+          // a failure that cannot happen.
+          expect(entry.voiceFallback, `${file} has a fallback it does not need`).toBeUndefined();
+        }
+      }
+    });
+
+    it('qualifies every fallback with its provider', () => {
+      for (const [file, entry] of Object.entries(MODEL_NAMES)) {
+        if (!entry.voiceFallback) continue;
+        const parsed = parseVoiceId(entry.voiceFallback);
+        expect(parsed?.provider, `${file} fallback is not provider-qualified`).toBeTruthy();
+        expect(parsed.id.length).toBeGreaterThan(0);
+      }
+    });
+
+    // A fallback equal to the voice it replaces is a no-op that looks like a
+    // feature: the retry fires, fails identically, and the avatar is still mute.
+    it('never falls back to the voice it is replacing', () => {
+      for (const [file, entry] of Object.entries(MODEL_NAMES)) {
+        if (!entry.voiceFallback) continue;
+        expect(entry.voiceFallback, `${file} falls back to itself`).not.toBe(entry.voice);
+      }
+    });
+
+    // The fallbacks are premade voices, and premade voices are shared across
+    // characters by design rather than chosen per character — so unlike the
+    // primary voices they are NOT required to be distinct from each other.
+    // What they must not be is some other character's live voice, which would
+    // put two characters in one voice the moment a Library voice lapsed.
+    it('does not fall back onto a voice another character already uses', () => {
+      const primaries = new Set(Object.values(MODEL_NAMES).map((m) => m.voice));
+      for (const [file, entry] of Object.entries(MODEL_NAMES)) {
+        if (!entry.voiceFallback) continue;
+        expect(primaries.has(entry.voiceFallback), `${file} falls back onto a live voice`)
+          .toBe(false);
+      }
+    });
+
+    it('resolves a fallback from a filename and from a store URL alike', () => {
+      expect(modelVoiceFallback('free-2.vrm')).toBe(MODEL_NAMES['free-2.vrm'].voiceFallback);
+      expect(modelVoiceFallbackForUrl('/free-2.vrm')).toBe(MODEL_NAMES['free-2.vrm'].voiceFallback);
+      expect(modelVoiceFallbackForUrl(MODEL_URL)).toBeTruthy();
+    });
+
+    it('is null for a model with no fallback, rather than throwing', () => {
+      expect(modelVoiceFallback('free-1.vrm')).toBeNull();
+      expect(modelVoiceFallback('not-a-real-model.vrm')).toBeNull();
+      expect(modelVoiceFallbackForUrl(null)).toBeNull();
+      expect(modelVoiceFallbackForUrl(undefined)).toBeNull();
+    });
+
+    // The reverse lookup is what /api/tts uses: it is handed a voice id and
+    // never the model, so the fallback has to be reachable from the id alone.
+    it('finds a fallback from the voice id alone', () => {
+      for (const file of LIBRARY_MODELS) {
+        const entry = MODEL_NAMES[file];
+        expect(voiceFallbackFor(entry.voice)).toBe(entry.voiceFallback);
+      }
+    });
+
+    it('has no fallback for a premade voice, or for anything unknown', () => {
+      expect(voiceFallbackFor(MODEL_NAMES['free-1.vrm'].voice)).toBeNull();
+      expect(voiceFallbackFor('elevenlabs:not-a-voice')).toBeNull();
+      expect(voiceFallbackFor('openai:nova')).toBeNull();
+      expect(voiceFallbackFor(null)).toBeNull();
+      expect(voiceFallbackFor(undefined)).toBeNull();
+      expect(voiceFallbackFor('')).toBeNull();
+    });
+
+    // A fallback that is itself a Library voice would be a chain, and the route
+    // retries exactly once — so the second voice must be one that cannot fail
+    // the same way. Nothing in code can read a voice's category, so this pins
+    // the shape instead: a fallback is never itself fallback-able.
+    it('does not chain: a fallback has no fallback of its own', () => {
+      for (const entry of Object.values(MODEL_NAMES)) {
+        if (!entry.voiceFallback) continue;
+        expect(voiceFallbackFor(entry.voiceFallback)).toBeNull();
+      }
+    });
   });
 
   describe('model palettes', () => {

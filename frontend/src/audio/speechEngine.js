@@ -149,6 +149,7 @@ class SpeechEngine {
     if (chunks.length === 0) return;
 
     const id = this.#beginUtterance();
+    this.#reportedFallback = false;
 
     // Muted. Take the silent path without touching the network or the audio
     // device at all — a synthesised utterance nobody hears still costs a round
@@ -328,6 +329,9 @@ class SpeechEngine {
 
   #gestureArmed = false;
 
+  /** Whether this utterance has already reported a substituted voice. */
+  #reportedFallback = false;
+
   /** POST one chunk to the TTS route and decode what comes back. */
   async #synthesize(text, opts) {
     const response = await fetch('/api/tts', {
@@ -353,6 +357,20 @@ class SpeechEngine {
     }
 
     const payload = await response.json();
+
+    // The route substitutes a premade voice when a character's Voice Library
+    // one is unavailable, and that degradation SOUNDS FINE — a different woman
+    // says the sentence perfectly. Nothing about the audio reveals it, so this
+    // is the only place it can be noticed. Warned once per utterance rather
+    // than once per chunk, or a long reply reports it a dozen times.
+    if (payload.fallbackFrom && !this.#reportedFallback) {
+      this.#reportedFallback = true;
+      console.warn(
+        `[speech] ${payload.fallbackFrom} is unavailable; speaking as ${payload.voice}. `
+        + 'See docs/15-voice-and-tts.md.',
+      );
+    }
+
     const bytes = base64ToBytes(payload.audio);
 
     // decodeAudioData is the authority on duration, not the WAV header the

@@ -87,9 +87,9 @@ export function clipLabel(file) {
  */
 export const MODEL_NAMES = {
   'free-1.vrm': { name: 'Sakura', blurb: 'Pink hair, cat ears, white coat', voice: 'elevenlabs:FGY2WhTYpPnrIDTdsKH5', palette: ['#ff8fb8', '#ffffff'] },
-  'free-2.vrm': { name: 'Rin', blurb: 'Purple hair, red eyes, school uniform', voice: 'elevenlabs:XiPS9cXxAVbaIWtGDHDh', palette: ['#7c3aed', '#e23d4c'] },
-  'free-3.vrm': { name: 'Hana', blurb: 'Brown hair, pink hoodie, headband', voice: 'elevenlabs:BZgkqPqms7Kj9ulSkVzn', palette: ['#ffb6ce', '#8a5a3b'] },
-  'free-5.vrm': { name: 'Yoru', blurb: 'Black twintails, striped dress', voice: 'elevenlabs:n7534fCgBXcPEM82JQYu', palette: ['#5b21b6', '#f2f0ff'] },
+  'free-2.vrm': { name: 'Rin', blurb: 'Purple hair, red eyes, school uniform', voice: 'elevenlabs:XiPS9cXxAVbaIWtGDHDh', voiceFallback: 'elevenlabs:pFZP5JQG7iQjIQuC4Bku', palette: ['#7c3aed', '#e23d4c'] },
+  'free-3.vrm': { name: 'Hana', blurb: 'Brown hair, pink hoodie, headband', voice: 'elevenlabs:BZgkqPqms7Kj9ulSkVzn', voiceFallback: 'elevenlabs:EXAVITQu4vr4xnSDxMaL', palette: ['#ffb6ce', '#8a5a3b'] },
+  'free-5.vrm': { name: 'Yoru', blurb: 'Black twintails, striped dress', voice: 'elevenlabs:n7534fCgBXcPEM82JQYu', voiceFallback: 'elevenlabs:Xb7hH8MSUJpSbSDYk0k2', palette: ['#5b21b6', '#f2f0ff'] },
   'free-6.vrm': { name: 'Kuro', blurb: 'As Yoru, with skull cuffs', voice: 'elevenlabs:XrExE9yKIg1WjnnlVkGX', palette: ['#dc2626', '#f5f5f5'] },
   'haishin-chan.vrm': { name: 'Momiji', blurb: 'Lilac hair, cat ears, red apron dress', voice: 'elevenlabs:cgSgspJ2msm6clMCkdW9', palette: ['#e0344b', '#ffb3c7', '#f7c9b0'] },
   'untitled-6.vrm': { name: 'Yuki', blurb: 'Lavender bob, bunny ears', voice: 'elevenlabs:hpp4J3VqNfWAUOO0d1Us', palette: ['#8b5cf6', '#ffc2de', '#e04a5f'] },
@@ -113,27 +113,50 @@ export const MODEL_NAMES = {
  * row here. The genders and ages in the comments below are the labels the
  * voices are published with, not impressions.
  *
- *   Sakura   Laura     young · sassy            pink hair, cat ears
- *   Rin      Lily      british · confident      cool, red eyes, uniform
- *   Hana     Sarah     young · warm             casual, hoodie
- *   Yoru     Alice     british · clear          night, twintails
- *   Kuro     Matilda   american · upbeat        Yoru's louder twin
- *   Momiji   Jessica   young · cute · warm      the default companion
- *   Yuki     Bella     bright · warm            soft, bunny ears
- *   Mio      Will      MALE · young · chill     the one male voice here
+ *   Sakura   Laura      premade   young · sassy               pink hair, cat ears
+ *   Rin      Brittney   LIBRARY   american · young · cute     cool, red eyes, uniform
+ *   Hana     Eve        LIBRARY   american · young · upbeat   casual, hoodie
+ *   Yoru     Pipi       LIBRARY   japanese · cute · anime     night, twintails
+ *   Kuro     Matilda    premade   american · upbeat            Yoru's louder twin
+ *   Momiji   Jessica    premade   young · cute · warm         the default companion
+ *   Yuki     Bella      premade   bright · warm                soft, bunny ears
+ *   Mio      Will       premade   MALE · young · chill         the one male voice here
  *
- * > **Every row here is a PREMADE voice, and that is a constraint rather than a
- * > preference.** ElevenLabs refuses Voice Library voices over the API on a
- * > free plan — `402 paid_plan_required` — and adding one to the account does
- * > not change that. So the eight below are drawn from the 21 premade voices,
- * > none of which is anime in character, which is the register this avatar
- * > actually wants. Rin and Hana were briefly set to library voices chosen by
- * > ear and had to be reverted; see docs/15-voice-and-tts.md.
- * >
- * > They are also a **derivation** — reasoned from published labels and the
- * > look notes beside them, not heard against the models. This project's record
- * > on derivations is poor enough to be written into its invariants. One line
- * > each to change, by design, which is the whole reason this is a table.
+ * ---------------------------------------------------------------------------
+ * WHY THREE ROWS CARRY A FALLBACK AND FIVE DO NOT
+ * ---------------------------------------------------------------------------
+ * Rin, Hana and Yoru speak in **Voice Library** voices, chosen by ear. The
+ * other five are **premade** — the 21 that come with any account, none of them
+ * anime in character, which is the register this avatar actually wants.
+ *
+ * That difference is an availability difference, not a taste one. A premade
+ * voice works on every plan and cannot be withdrawn; a Library voice depends on
+ * the account's plan and on the voice still being published. This project has
+ * already been bitten by exactly that: on the free plan all three returned
+ * `402 paid_plan_required` at synthesis while looking perfectly normal in
+ * `/v1/voices`, and the rows had to be reverted by hand. The account is on
+ * Starter now and they work — but a lapsed plan, a downgrade or a voice pulled
+ * from the Library puts it straight back, and the failure is a mute avatar.
+ *
+ * So each Library row names the premade voice it falls back to. `/api/tts`
+ * retries once with it when — and only when — the provider says the *voice*
+ * is unavailable. The three fallbacks are the premade voices these rows held
+ * before the Library was open, and all three were confirmed `category:
+ * 'premade'` on the account rather than recalled from the docs:
+ *
+ *   Rin  → Lily   pFZP5JQG7iQjIQuC4Bku   british · confident
+ *   Hana → Sarah  EXAVITQu4vr4xnSDxMaL   american · young · professional
+ *   Yoru → Alice  Xb7hH8MSUJpSbSDYk0k2   british · clear
+ *
+ * A premade row needs no fallback: there is nothing for it to fall back FROM.
+ * Adding one would be a second id to keep correct for a failure that cannot
+ * happen.
+ *
+ * > **Nobody has heard any of these against the models.** The three Library
+ * > voices were picked by ear from the Library and confirmed to synthesise; the
+ * > five premade ones are reasoned from published labels, which makes them a
+ * > *derivation*, and this project's record on those is written into its
+ * > invariants. One line each to change, by design.
  *
  * A model with no row falls back to the provider's env default, so dropping in
  * a new .vrm still speaks.
@@ -153,6 +176,53 @@ export function modelVoiceForUrl(modelUrl) {
   if (typeof modelUrl !== 'string') return null;
   return modelVoice(modelUrl.replace(/^\//, ''));
 }
+
+/**
+ * The premade voice a model's Library voice falls back to, or null.
+ *
+ * Null is the ordinary answer, not an error: five of the eight rows speak in a
+ * premade voice already and have nothing to fall back from.
+ *
+ * @param {string} file filename, e.g. 'free-2.vrm'
+ */
+export function modelVoiceFallback(file) {
+  return MODEL_NAMES[file]?.voiceFallback ?? null;
+}
+
+/** The fallback voice for a model URL as the store holds it. */
+export function modelVoiceFallbackForUrl(modelUrl) {
+  if (typeof modelUrl !== 'string') return null;
+  return modelVoiceFallback(modelUrl.replace(/^\//, ''));
+}
+
+/**
+ * The fallback for a voice id, looked up by the id itself.
+ *
+ * ---------------------------------------------------------------------------
+ * WHY THIS IS KEYED ON THE VOICE AND NOT ON THE MODEL
+ * ---------------------------------------------------------------------------
+ * /api/tts is handed a voice id and nothing else — by design, since the
+ * provider travels with the id so no second piece of state can disagree about
+ * who is speaking. Sending the model alongside it would reintroduce exactly
+ * that pair. So the fallback has to be reachable from the id, which is what
+ * this reverse lookup is for.
+ *
+ * Built once at module load rather than per request: the table is eight rows
+ * and never changes at runtime.
+ *
+ * @param {string|null|undefined} voiceId a qualified id, e.g. 'elevenlabs:XiPS9...'
+ * @returns {string|null} the qualified fallback id, or null if there is none
+ */
+export function voiceFallbackFor(voiceId) {
+  if (typeof voiceId !== 'string') return null;
+  return VOICE_FALLBACKS.get(voiceId) ?? null;
+}
+
+const VOICE_FALLBACKS = new Map(
+  Object.values(MODEL_NAMES)
+    .filter((row) => row.voice && row.voiceFallback)
+    .map((row) => [row.voice, row.voiceFallback]),
+);
 
 /**
  * What to call a model in the production picker.

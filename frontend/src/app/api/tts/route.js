@@ -1,5 +1,6 @@
 import { TTS_CONFIG } from '@/lib/ttsConfig.js';
-import { parseVoiceId } from '@/lib/voiceId.js';
+import { parseVoiceId, formatVoiceId } from '@/lib/voiceId.js';
+import { voiceFallbackFor } from '@/lib/constants.js';
 import { PROVIDER_IMPLS, NotConfiguredError } from '@/lib/tts/providers.js';
 
 export const runtime = 'nodejs';
@@ -67,38 +68,66 @@ export async function POST(request) {
   // unbounded value reaches the provider's own parser.
   const clausePauseMs = clamp(Number(body?.clausePauseMs) || 0, 0, 2000);
 
+  const options = {
+    rate,
+    clausePauseMs,
+    // Bounded here as well as by the caller: an API that never answers would
+    // otherwise hold this route open until the platform's own timeout, which
+    // is a worse failure than a fast one the client can fall back from.
+    //
+    // ONE signal for both attempts, deliberately: it bounds the route rather
+    // than each call, so a retry cannot double how long the client waits. It
+    // cannot have fired before the retry either — a fallback only happens
+    // after a real HTTP status came back.
+    signal: AbortSignal.timeout(TTS_CONFIG.timeoutMs),
+  };
+
   let result;
+  let spokenProvider = providerName;
+  let spokenVoice = parsed ? formatVoiceId(providerName, parsed.id) : null;
+  let fellBackFrom = null;
+
   try {
-    result = await provider.synthesize(text, {
-      voice: parsed?.id ?? null,
-      rate,
-      clausePauseMs,
-      // Bounded here as well as by the caller: an API that never answers would
-      // otherwise hold this route open until the platform's own timeout, which
-      // is a worse failure than a fast one the client can fall back from.
-      signal: AbortSignal.timeout(TTS_CONFIG.timeoutMs),
-    });
+    result = await provider.synthesize(text, { ...options, voice: parsed?.id ?? null });
   } catch (err) {
-    if (err instanceof NotConfiguredError) {
-      return Response.json({ error: err.message, docs: 'docs/15-voice-and-tts.md' }, { status: 503 });
-    }
-    if (err?.name === 'TimeoutError' || err?.name === 'AbortError') {
-      return Response.json(
-        { error: `Speech synthesis timed out after ${TTS_CONFIG.timeoutMs}ms.` },
-        { status: 504 },
+    // ------------------------------------------------------------------
+    // One retry, on the model's premade voice.
+    //
+    // Three characters speak in Voice Library voices, which depend on the
+    // account's plan and on the voice still being published; the other five
+    // use premade voices, which work on any plan. When a Library voice goes
+    // away the symptom is a mute avatar, and it has happened here before:
+    // every one of the three returned `402 paid_plan_required` on the free
+    // plan while appearing perfectly normal in /v1/voices.
+    //
+    // NARROW ON PURPOSE. Only statuses that mean *this voice is not available
+    // to you* retry. A bad key, a spent quota and a timeout are not fixed by
+    // a different voice, and retrying them would double the latency of every
+    // real failure before reporting the same thing.
+    // ------------------------------------------------------------------
+    // Looked up on the re-formatted id rather than the raw request value, so
+    // stray whitespace around a voice id cannot cost a character its spare.
+    const fallbackId = isVoiceUnavailable(err) ? voiceFallbackFor(spokenVoice) : null;
+    const fallback = fallbackId ? parseVoiceId(fallbackId) : null;
+    const fallbackProviderName = fallback?.provider ?? TTS_CONFIG.defaultProvider;
+    const fallbackProvider = PROVIDER_IMPLS[fallbackProviderName];
+
+    if (!fallback || !fallbackProvider?.configured()) return errorResponse(err);
+
+    try {
+      result = await fallbackProvider.synthesize(text, { ...options, voice: fallback.id });
+      fellBackFrom = spokenVoice;
+      spokenProvider = fallbackProviderName;
+      spokenVoice = formatVoiceId(fallbackProviderName, fallback.id);
+      console.warn(
+        `[tts] ${spokenVoice} substituted for ${fellBackFrom}: ${err.message}`,
       );
+    } catch {
+      // The ORIGINAL error, not the fallback's. The first one says why the
+      // chosen voice is unavailable, which is the fix; the second only says
+      // that the spare did not save it.
+      return errorResponse(err);
     }
-    return Response.json(
-      {
-        error: err.message,
-        hint: err.status === 401
-          ? 'Check the API key in .env.local, and restart the dev server after changing it.'
-          : undefined,
-      },
-      // 401 is reported as 503 because to the client it means the same thing a
-      // missing key does: no voice available, fall back to mouthing.
-      { status: err.status === 401 ? 503 : 502 },
-    );
   }
 
   if (result.bytes.byteLength === 0) {
@@ -111,7 +140,14 @@ export async function POST(request) {
     // a second round trip would.
     audio: Buffer.from(result.bytes).toString('base64'),
     mimeType: result.mimeType,
-    provider: providerName,
+    provider: spokenProvider,
+    // Who actually spoke, and who was asked for. Equal on the ordinary path;
+    // `fallbackFrom` is non-null only when a Library voice was unavailable and
+    // the premade spare answered instead. Surfaced rather than logged because
+    // this is a degradation that sounds fine — a different woman says the
+    // sentence perfectly — and a silent substitution is one nobody ever fixes.
+    voice: spokenVoice,
+    fallbackFrom: fellBackFrom,
     /**
      * Always empty, and the client knows what to do about it.
      *
@@ -126,6 +162,46 @@ export async function POST(request) {
      */
     phonemes: [],
   });
+}
+
+/**
+ * Does this error mean *that voice is not available to you*?
+ *
+ * The three statuses each provider uses to say so, and nothing wider. 402 is
+ * ElevenLabs' `paid_plan_required` — the one that has actually happened here.
+ * 404 and 400 cover `voice_not_found`, which is what a voice withdrawn from the
+ * Library looks like.
+ *
+ * A key problem (401), a spent quota (429) and a timeout are deliberately absent:
+ * a different voice does not fix any of them, and retrying would double the
+ * latency of every real failure before reporting the same thing.
+ */
+function isVoiceUnavailable(err) {
+  return err?.status === 402 || err?.status === 404 || err?.status === 400;
+}
+
+/** A provider failure, as the response the client knows how to degrade from. */
+function errorResponse(err) {
+  if (err instanceof NotConfiguredError) {
+    return Response.json({ error: err.message, docs: 'docs/15-voice-and-tts.md' }, { status: 503 });
+  }
+  if (err?.name === 'TimeoutError' || err?.name === 'AbortError') {
+    return Response.json(
+      { error: `Speech synthesis timed out after ${TTS_CONFIG.timeoutMs}ms.` },
+      { status: 504 },
+    );
+  }
+  return Response.json(
+    {
+      error: err.message,
+      hint: err.status === 401
+        ? 'Check the API key in .env.local, and restart the dev server after changing it.'
+        : undefined,
+    },
+    // 401 is reported as 503 because to the client it means the same thing a
+    // missing key does: no voice available, fall back to mouthing.
+    { status: err.status === 401 ? 503 : 502 },
+  );
 }
 
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
