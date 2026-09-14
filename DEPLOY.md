@@ -1,52 +1,53 @@
 # Deploying to Vercel
 
-**The app is in `frontend/`, not at the repository root.** Everything below is
-about that one fact.
+The app is in `frontend/`, so **Root Directory must be `frontend`** — Project →
+Settings → Build and Deployment. `vercel.json` lives in `frontend/` for the same
+reason: Vercel reads it from the root directory, not from the repository root.
 
-## The 404
+## The 404, and what it was not
 
 A deployment that **builds successfully and then serves `404: NOT_FOUND` on
-every path** is the signature of Vercel looking at the repository root. There is
-no `package.json` there, so there is no framework to detect and nothing to
-build — the build step "succeeds" by having nothing to do, the repo root is
-served as a static directory, and there is no `index.html` in it. Hence a green
-build and a 404.
+every path** means Vercel built something and then served a directory that has
+no `index.html` in it.
 
-It is not a routing problem, and nothing in the Next app causes it.
+The first guess was that Root Directory was unset, pointing the build at the
+repository root where there is no `package.json`. **It was already set to
+`frontend`.** That guess is recorded here because it is the obvious one and the
+next person will make it too: check the setting before acting on it.
 
-## Two ways to fix it, and you only need one
+What is left, with Root Directory correct and `next` in `dependencies`, is a
+**project setting overriding framework detection** — Framework Preset switched
+to "Other", or an Output Directory override. Either produces exactly this: the
+build command runs and passes, then Vercel serves the output as a static
+directory instead of handing it to the Next.js runtime, and there is no
+`index.html` to serve.
 
-### 1. Set the Root Directory (preferred)
-
-In the Vercel dashboard: **Project → Settings → Build and Deployment → Root
-Directory → `frontend`**, then redeploy.
-
-This is the supported path for an app in a subdirectory. Vercel then treats
-`frontend/` as the project root and every native Next.js integration works with
-no configuration at all — the App Router, the API routes as serverless
-functions, and the framework detection.
-
-With the Root Directory set, the `vercel.json` at the repo root is **ignored**,
-because Vercel reads `vercel.json` from the root directory. That is fine, and it
-is why keeping both costs nothing.
-
-### 2. The `vercel.json` at the repo root
-
-Already committed. It builds `frontend/` from a repo-root deployment:
+`frontend/vercel.json` pins the preset, and settings in `vercel.json` take
+precedence over the dashboard:
 
 ```json
-{
-  "framework": "nextjs",
-  "installCommand": "npm install --prefix frontend",
-  "buildCommand": "npm run build --prefix frontend",
-  "outputDirectory": "frontend/.next"
-}
+{ "framework": "nextjs" }
 ```
 
-Use this if you would rather not touch the dashboard. **It has not been run
-against Vercel's builder** — the local build it wraps is green, and the file is
-the documented shape for the case, but the deployment itself is unverified.
-Option 1 is the one with no unknowns in it.
+It is deliberately only that one key. A `buildCommand` or `outputDirectory` here
+would override Vercel's native Next.js handling — which is the thing that needs
+to work — rather than restore it.
+
+**If it still 404s after this**, the remaining candidates are dashboard
+overrides `vercel.json` does not touch. In Settings → Build and Deployment,
+clear them back to default:
+
+- **Output Directory** — must be empty/default, not `out`, `dist` or `public`.
+- **Build Command** — must be empty/default, or `next build`.
+- **Install Command** — must be empty/default.
+
+Then confirm the deployment you are opening is the **production** one and not a
+stale alias.
+
+This has been reasoned from the repository and the one dashboard setting that
+was visible; **the fix has not been watched deploying.** The local build is
+green and the repository contains everything the build needs, which is as far as
+anything here can establish.
 
 ## Environment variables
 
@@ -59,41 +60,39 @@ gitignored and never reaches Vercel.
 | `OPENAI_API_KEY` | the second voice provider, optional |
 
 **Without a key nothing breaks.** `/api/tts` answers 503, the client falls back
-to mouthing the words silently, and the UI says why. That is the behaviour the
-whole project had before it had a voice, so an unconfigured deployment is a
-degraded one rather than a broken one.
+to mouthing the words silently, and the UI says why — the behaviour the whole
+project had before it had a voice. An unconfigured deployment is degraded, not
+broken.
 
-Restart or redeploy after changing either — they are read at startup.
+Both are read at startup, so redeploy after changing either.
 
 ## What a fresh clone is missing
 
 Three of the eight models and all six animation clips are **not in the
-repository**, because their licences forbid redistributing them. See
-[frontend/public/ASSETS.md](frontend/public/ASSETS.md).
+repository**, because their licences forbid redistributing them —
+[frontend/public/ASSETS.md](frontend/public/ASSETS.md) has the table and the
+reasoning.
 
 So a deployment built straight from a clone has five models, an empty Animate
-menu and no entrance animation. Nothing errors — the model and clip lists are
-built by reading the directories.
+menu and no entrance animation. Nothing errors: both lists are built by reading
+the directory.
 
-To deploy the full cast, put the missing files in `frontend/public/` **in the
-build environment**. They cannot be committed. Practical options:
-
-- Host the three models and six clips on object storage and fetch them at
-  runtime, which is also the answer to the bundle-size question below.
-- Keep a private mirror of the repo with the assets committed there.
+To deploy the full cast the files have to reach the build environment without
+passing through git. Either host them on object storage and point at them, or
+keep a private mirror with the assets committed there.
 
 ## The five committed models are 87 MB
 
-That is unusual for a Vercel deployment and worth knowing before it surprises
-you. They are static files in `public/`, so they are served from the CDN rather
-than through a function, and the local build handles them fine — but this has
-**not** been deployed at that size, and platform limits on deployment size are
-the thing most likely to bite.
+Unusual for a Vercel deployment, and worth knowing before it surprises you.
+They are static files in `public/`, so they are served from the CDN rather than
+through a function, and the local build handles them — but **this has not been
+deployed at that size**, and a platform limit on deployment size is the most
+likely thing to bite.
 
 If it does, the fix is the same one as for the uncommittable assets: move the
 `.vrm` files to object storage and point `modelUrl` at them. Nothing in the app
 assumes the models are same-origin.
 
 `MAX_RESIDENT` in [frontend/src/lib/carousel.js](frontend/src/lib/carousel.js)
-is a separate concern — it bounds how many decoded models sit in memory in the
-browser, not how many are deployed.
+is a different question — it bounds how many decoded models sit in browser
+memory, not how many are deployed.

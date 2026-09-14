@@ -15,7 +15,7 @@ cd frontend && npm test        # vitest run
 npm run test:watch
 ```
 
-**422 tests across 22 files, ~6 seconds.** `environment: 'node'` — no jsdom, no
+**454 tests across 23 files, ~6 seconds.** `environment: 'node'` — no jsdom, no
 headless browser, no WebGL context. The `@` alias resolves to `src/`.
 
 | File | Tests | Covers |

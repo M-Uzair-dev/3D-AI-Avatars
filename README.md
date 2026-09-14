@@ -26,26 +26,33 @@ npm install
 npm run dev          # http://localhost:3000
 ```
 
-### You need to bring your own models
+**Five models are in the repository and work out of the box**, including the default.
+Three more and all the animation clips are not, because their own licences forbid
+redistributing the file — so a fresh clone gives you five characters, an empty Animate
+menu and no entrance animation. Nothing errors; both lists are built by reading the
+directory.
 
-**`.vrm` and `.vrma` files are gitignored, so a fresh clone has no character and no
-animations.** This is deliberate: the models are someone else's work, they are ~18 MB
-each, and their licences are yours to check rather than mine to redistribute.
+Which models, which flags, and how to restore the rest:
+[frontend/public/ASSETS.md](frontend/public/ASSETS.md).
+
+### Adding your own
 
 Drop any `.vrm` into `frontend/public/` and it appears in the picker automatically —
 `/api/models` reads the directory and pulls each file's declared name, author and licence
 out of its own metadata. No code change needed.
 
-Two things worth knowing if you want it to look like the screenshots:
+**Check what it permits before committing it: `npm run licences`.** A VRM's licence
+carries `commercial_use` and `redistribution` as *separate* flags, and they disagree more
+often than you would expect — three of the eight models here permit commercial use and
+forbid redistribution. The script prints the table and fails if git is tracking a file
+that does not allow it.
 
-- The default model is `free-2.vrm`. Point `MODEL_URL` in `frontend/src/lib/constants.js`
-  at whatever you actually have, or the app will tell you the file is missing.
-- `frontend/src/lib/constants.js` also carries a small table of human names, look notes,
-  voice ids and backdrop colours per filename. Models not in that table still work; they
-  just fall back to whatever the file says about itself.
+`frontend/src/lib/constants.js` carries a small table of human names, look notes, voice
+ids and backdrop colours per filename. Models not in that table still work; they fall
+back to whatever the file says about itself.
 
 Animations go in `frontend/public/animations/` as `.vrma` and are listed by name in the
-Animate menu. The official pixiv VRoid motion pack works well.
+Animate menu. The official pixiv VRoid motion pack is what this was built against.
 
 ### Giving her a voice (optional)
 
@@ -58,6 +65,11 @@ Fill in `ELEVENLABS_API_KEY` or `OPENAI_API_KEY` and restart. Both can be set at
 With no key she still mouths the words silently on a timeline derived from the text,
 which is how the whole project worked before it had audio. Nothing breaks; the UI just
 says why there is no sound.
+
+### Deploying
+
+The app is in `frontend/`, so Vercel's **Root Directory must be `frontend`**. See
+[DEPLOY.md](DEPLOY.md) — including what a build that passes and then 404s means.
 
 ---
 
@@ -86,7 +98,7 @@ lookAt →
 vrm.update(dt)
 ```
 
-`lib/` imports neither React nor three.js, which is why the 422 tests run in about six
+`lib/` imports neither React nor three.js, which is why the 454 tests run in about six
 seconds with no browser and no GPU. It is also what makes the logic portable — the
 interesting parts can be lifted into another renderer wholesale.
 
@@ -99,7 +111,9 @@ A few things that turned out to matter more than expected, all written up in `do
   voice within a minute.
 - **An animation clip read back off the rig arrives as Euler angles, and that conversion
   is not continuous.** Near gimbal it jumps a full turn while the real rotation moves
-  three degrees.
+  three degrees. Keeping those numbers continuous means the spelling *accumulates*, so a
+  clip can end a full turn from where it started — which is why a clip is blended back
+  into the body as quaternions, where spelling does not exist.
 
 ---
 
@@ -120,12 +134,17 @@ and copied:
 
 ## Credits and licensing
 
-The code here is mine. The assets are not, and none of them are in this repository.
+The code here is mine. The assets are not, and what is in this repository is exactly
+what its own licence permits to be — no more.
 
-- **Models.** Only use VRM files whose own metadata permits what you intend to do with
-  them. The picker surfaces each file's declared terms; verify them against the source
-  page before shipping anything.
-- **Animations.** The pixiv VRoid pack permits commercial use *with credit* ("Animation
-  credits to pixiv Inc.'s VRoid Project") and prohibits redistributing the motions in a
-  form that can be extracted or re-rigged.
+- **Models.** Five are committed, all declaring `redistribution=allow`. Three are not,
+  because they declare `redistribution=disallow` while still permitting commercial use.
+  Those are different flags and conflating them is how models end up published that
+  should not be. `npm run licences` reads each file and answers it;
+  [frontend/public/ASSETS.md](frontend/public/ASSETS.md) is the table. Verify against the
+  source page before shipping regardless — metadata is the author's claim, not a warranty.
+- **Animations.** None are committed. The pixiv VRoid pack permits commercial use *with
+  credit* ("Animation credits to pixiv Inc.'s VRoid Project") and prohibits redistributing
+  the motions in a form that can be extracted or re-rigged — which a `.vrma` in a public
+  repository is. Its terms file is committed and says where to get the pack.
 - **Voices.** Rented from whichever provider you configure, under their terms.

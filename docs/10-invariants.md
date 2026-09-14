@@ -34,7 +34,7 @@ silently erases the clip every frame.
 
 ### 4. `src/lib/**` must never import React or three.js
 
-All non-trivial logic lives there as pure functions. That is why 422 tests run in ~6 s
+All non-trivial logic lives there as pure functions. That is why 454 tests run in ~6 s
 with no jsdom, no browser, no GPU. **If a test needs jsdom, the boundary was drawn
 wrong.**
 → [02-architecture.md](02-architecture.md) · [09-testing.md](09-testing.md)
@@ -194,6 +194,8 @@ one frame while the real rotation moves 3 degrees. Same rotation, different numb
 every layer that interpolates or adds to those numbers jumps with it.
 `unwrapPose` picks the spelling nearest last frame's. It handles whole turns and the
 second XYZ solution; it cannot fix gimbal itself, which is what invariant 23 is for.
+
+**And unwrapping ACCUMULATES** — see invariant 26, which is the bill for this one.
 → [03-frame-loop.md](03-frame-loop.md) · [unwrapEuler.js](../frontend/src/lib/unwrapEuler.js)
 
 ### 25. The carousel changes `modelUrl` at the midpoint, never on the press
@@ -202,6 +204,38 @@ A button press sets `carousel`; the frame loop swaps the model on an empty stage
 on the press tears the model out from under its own exit animation, and it moves the
 camera's head-height snap to a moment you can see it.
 → [08-state-and-ui.md](08-state-and-ui.md)
+
+### 26. Blend a clip against a pose as QUATERNIONS, never as Euler numbers
+
+Invariant 24 keeps the clip read-back continuous by choosing the spelling nearest last
+frame's — and those choices accumulate. Measured on the shipped clips, `VRMA_01` ends
+with `hips.z` at **360.6 degrees** and `VRMA_07` with `leftLowerArm.z` at **-721.5**: the
+same rotations they describe near zero, spelled turns away.
+
+At full clip weight that is free, because the blend returns the clip pose exactly. The
+**fade-out** is where it costs. Interpolating those numbers down to the static pose walked
+`hips.z` through a full turn in 600 ms, and `hips` is the skeleton root — so the whole
+body cartwheeled sideways at the end of every wound-up clip.
+
+Shifting by whole turns is not the fix: the arms wind up on the *second XYZ solution*,
+which no turn-shifting removes. `blendPosesShortest` converts to quaternions, where a
+rotation has no spelling at all, and slerps by the short arc.
+
+`lerpPoses` keeps its Euler arithmetic for easing between presets, where its own comment
+is true — those really are small rotations. Clip blending never was.
+→ [03-frame-loop.md](03-frame-loop.md) · [quat.js](../frontend/src/lib/quat.js)
+
+### 27. `commercial_use` and `redistribution` are different licence flags
+
+A VRM's licence answers *may she appear in your product* and *may this file be handed on*
+separately, and three of the eight models here answer them opposite ways. The project
+filtered once on the first, recorded it as "the licence filter", and treated publishing
+the files as settled — it was not.
+
+Only `redistribution` governs what is committed. `npm run licences` reads it out of each
+file and fails if git is tracking one that forbids it. Silence in a file's metadata is
+not permission.
+→ [ASSETS.md](../frontend/public/ASSETS.md) · [vrmMeta.js](../frontend/src/lib/vrmMeta.js)
 
 ---
 

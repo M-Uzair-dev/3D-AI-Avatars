@@ -56,7 +56,7 @@ screen long and every rule on it has already cost someone a debugging session.
 
 | I want to… | Read |
 |---|---|
-| Switch or add a model | [14](14-stage-and-lighting.md) · licences in [11](11-open-questions.md) |
+| Switch or add a model | [14](14-stage-and-lighting.md) · licences in [ASSETS.md](../frontend/public/ASSETS.md) |
 | Change the model carousel or its prefetch | [08](08-state-and-ui.md) |
 | Change how she first appears | [14](14-stage-and-lighting.md) |
 | Work out why a clip jerks or drifts | [03](03-frame-loop.md) |
@@ -73,6 +73,8 @@ screen long and every rule on it has already cost someone a debugging session.
 | Know why a test does not exist | [09](09-testing.md) |
 | Load an animation clip | [06](06-poses-and-rig.md) · status in [11](11-open-questions.md) |
 | Know what is safe to trust | [11](11-open-questions.md) |
+| Deploy it, or work out a 404 | [DEPLOY.md](../DEPLOY.md) |
+| Know which assets may be published | [ASSETS.md](../frontend/public/ASSETS.md) |
 
 ## Find it by file
 
@@ -85,7 +87,7 @@ screen long and every rule on it has already cost someone a debugging session.
 | [aliveness.js](../frontend/src/lib/aliveness.js) · [blink.js](../frontend/src/lib/blink.js) · [idleMath.js](../frontend/src/lib/idleMath.js) · [useIdleMotion.js](../frontend/src/hooks/useIdleMotion.js) | [07](07-idle-motion.md) |
 | [avatarStore.js](../frontend/src/stores/avatarStore.js) · `components/Controls/*` · `components/ControlPanel/*` · [animations.js](../frontend/src/lib/animations.js) | [08](08-state-and-ui.md) |
 | [carousel.js](../frontend/src/lib/carousel.js) · [carouselMotion.js](../frontend/src/lib/carouselMotion.js) · [vrmCache.js](../frontend/src/models/vrmCache.js) · [ModelNav.jsx](../frontend/src/components/Controls/ModelNav.jsx) | [08](08-state-and-ui.md) · [14](14-stage-and-lighting.md) |
-| [unwrapEuler.js](../frontend/src/lib/unwrapEuler.js) · [clips.js](../frontend/src/lib/clips.js) | [03](03-frame-loop.md) |
+| [unwrapEuler.js](../frontend/src/lib/unwrapEuler.js) · [quat.js](../frontend/src/lib/quat.js) · [clips.js](../frontend/src/lib/clips.js) | [03](03-frame-loop.md) |
 | [postures.js](../frontend/src/lib/postures.js) | [12](12-conversational-states.md) |
 | [gestures.js](../frontend/src/lib/gestures.js) | [13](13-gestures.md) |
 | [Scene.jsx](../frontend/src/components/Scene.jsx) · [framing.js](../frontend/src/lib/framing.js) · [globals.css](../frontend/src/app/globals.css) | [14](14-stage-and-lighting.md) |
@@ -95,7 +97,7 @@ screen long and every rule on it has already cost someone a debugging session.
 
 1. **`vrm.update(dt)` last, exactly once per frame.** Everything else is negotiable.
    → [03](03-frame-loop.md)
-2. **`lib/` imports neither React nor three.js.** That is why 422 tests run in 6
+2. **`lib/` imports neither React nor three.js.** That is why 454 tests run in 6
    seconds. → [02](02-architecture.md)
 3. **Enumerate from the model, never hardcode.** → [05](05-expressions.md)
 4. **Co-articulation is a free side effect of exponential damping** — one line, one
@@ -113,7 +115,9 @@ screen long and every rule on it has already cost someone a debugging session.
 9. **The mixer writes quaternions; the compositor reads Euler, and that conversion is not
    continuous.** Measured on the shipped clips: the read-back jumps by a full turn while
    the real rotation moves three degrees, with the bone sitting at gimbal. Writing it back
-   is harmless; *adding* to it is not. → [03](03-frame-loop.md)
+   is harmless; *adding* to it is not — and keeping it continuous makes the spelling
+   **accumulate**, so a clip ends a full turn from where it started and the fade-out
+   unwinds it on screen. Blend a clip as quaternions. → [03](03-frame-loop.md)
 10. **Never claim a thing before you can act on it.** The frame loop moved its clip ref to
     the requested url and *then* asked the mixer to play it — so a clip that could not
     start yet was recorded as playing and never retried. Same shape as hiding the avatar

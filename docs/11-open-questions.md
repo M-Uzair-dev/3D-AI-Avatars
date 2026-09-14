@@ -4,8 +4,8 @@
 excluded. This is the doc most likely to go stale — update it when you resolve
 something.
 
-**Last reviewed:** 2026-09-14 (carousel, stage nav, per-model backdrop, clip-jerk
-diagnosis, the entrance)
+**Last reviewed:** 2026-09-15 (the commit landed; models published; voice fallbacks;
+the end-of-clip 360 fixed; Vercel still not up)
 
 See also: [06-poses-and-rig.md](06-poses-and-rig.md) · [09-testing.md](09-testing.md)
 
@@ -13,32 +13,29 @@ See also: [06-poses-and-rig.md](06-poses-and-rig.md) · [09-testing.md](09-testi
 
 ## If you read nothing else
 
-Four things are blocking, in this order.
+Three things are blocking, in this order.
 
-1. **Commit** (§1). Nothing built in the last three sessions exists in git history. The
-   branch is 13 commits ahead of `main` and the last commit predates the production UI,
-   the whole voice layer, the carousel, the stage nav and the entrance. This is now the
-   largest single risk in the project, and it is the cheapest to retire.
-2. **Re-measure the arm poses against Rin** (§4b). Every hand-on-body value —
+1. **Re-measure the arm poses against Rin** (§4b). Every hand-on-body value —
    `thinking`, `arms-behind`, `scratch-head` — was dragged out against `kitsaki.vrm`,
    which was deleted for being non-commercial. Nothing throws and no test fails; the
-   hands are simply in the wrong place. **The reason to wait is gone**: the model is
-   settled, so measuring now is measuring once. `npm run dev` → `?dev=1` → Pose tab →
-   drag → Copy pose JSON.
-3. **Nothing about the voice has ever been heard** (§4e). `ELEVENLABS_API_KEY` is set,
+   hands are simply in the wrong place. The model is settled, so measuring now is
+   measuring once. `npm run dev` → `?dev=1` → Pose tab → drag → Copy pose JSON. **This
+   is now the largest open item in the project.**
+2. **Nothing about the voice has ever been heard** (§4e). `ELEVENLABS_API_KEY` is set,
    the account is on Starter, and direct synthesis returns audio — but nothing has gone
    through `/api/tts` and the speech engine, so the audio clock, gapless chunk
    scheduling and whether the mouth matches the sound are all unexecuted. Every failure
    degrades to the silent mouth this project always had, so nothing is broken and
    nothing is proven. **`npm run dev` and press Speak is the whole cost.**
-4. **Look at everything in §2.** The last three sessions changed a great deal and almost
-   none of it has been watched — the carousel, the entrance, the per-model backdrop, the
-   clip-jerk fix. Each was verified against numbers, which is not the same as being
-   looked at.
+3. **Look at everything in §2.** Several sessions changed a great deal and almost none
+   of it has been watched — the carousel, the entrance, the per-model backdrop, the
+   clip-jerk fix, and now the end-of-clip fix. Each was verified against numbers, which
+   is not the same as being looked at.
 
-~~**Pick a model**~~ — **settled, and worth recording as closed.** `free-2.vrm`, Rin,
-**chosen by eye**. Every previous default was picked for its licence with nobody having
-compared the eight on screen; that was the oldest open question in this file. The licence
+~~**Commit**~~ — **done**, `8b210a3`, one honest commit of the whole companion layer.
+`main` and `vrm-avatar-core` are identical and the tree is clean.
+
+~~**Pick a model**~~ — **settled.** `free-2.vrm`, Rin, **chosen by eye**. The licence
 filter still applies and still comes first, and Rin passes it.
 
 Everything else in this file is a tuning question, and most of it needs a pair of eyes
@@ -46,46 +43,60 @@ rather than a decision.
 
 ---
 
-## 1. Uncommitted work
+## 1. Deployment: still not up
 
-**This is the first thing to deal with.** The entire companion layer is in the working
-tree and **not committed**. Branch `vrm-avatar-core` is 13 commits ahead of `main`, has
-never been merged, and the last commit predates everything described in this document.
+**This is the only thing here that is outright broken rather than unverified.**
 
-`npm test` (**422**, 22 files), `npm run lint` and `npm run build` are all green as of
-the last edit. `/` is now a **dynamic** route rather than static, because it reads
-`searchParams` for `?dev=1` — expected, not a regression.
+The repo is public at `M-Uzair-dev/3D-AI-Avatars` and a Vercel deployment **builds
+successfully and then serves `404: NOT_FOUND` on every path.**
 
-Untracked and worth knowing before any `git add -A`:
+What has been ruled out, by looking rather than by guessing:
 
-- `docs/` — this documentation set, entirely untracked
-- `frontend/src/components/Controls/` — the entire production control surface
-  (`index`, `Popover`, `MenuButton`, `StateBar`, `ModelMenu`, `AnimationMenu`, `SpeechBar`)
-- `frontend/src/lib/animations.js` + its test
-- `frontend/src/lib/postures.test.js` — new; the module had no tests before
-- `frontend/src/lib/` — `aliveness.js`, `blink.js`, `clips.js`, `framing.js`,
-  `gestures.js`, `postures.js`, `vrmMeta.js` and their tests
-- `frontend/src/app/api/models/`, `StageTab.jsx`, `StateTab.jsx`
-- **the carousel and the stage nav** — `lib/carousel.js`, `lib/carouselMotion.js`,
-  `models/vrmCache.js` (the only impure module outside `audio/`), and
-  `components/Controls/ModelNav.jsx`
-- **the clip-jerk fix** — `lib/unwrapEuler.js` and its test; `scalePose` in `composite.js`
-  and `clipDispatch` / `arrivalHidesModel` in `clips.js` are additions to tracked files
-- **the whole voice layer** — `frontend/src/audio/speechEngine.js`,
-  `frontend/src/app/api/tts/`, `frontend/src/app/api/voices/`, and in `lib/`:
-  `chunkText.js`, `phonemes.js`, `wav.js`, `ttsConfig.js`, each with its test where it
-  is pure
-- `frontend/.env.example` — committed by an explicit `!` exception to the `.env*` rule,
-  because it names the variables without holding any of their values
-- `frontend/public/animations/` — the `.vrma` are gitignored but the licence text is not
+- **Root Directory** is set to `frontend`. This was the first theory and it was wrong —
+  check the setting before acting on it.
+- **Everything the build needs is tracked**: `package.json`, `package-lock.json`,
+  `next.config.mjs`, `jsconfig.json`, `postcss.config.mjs`, all of `src/`.
+- `next@16.3.0` is a real dependency, so framework detection has something to detect.
+- `npm test`, `npm run lint` and `npm run build` are green locally.
 
-`.gitignore` covers `*.vrm`, `*.vrma`, `assets-source/` and dropped archives, so no large
-binary can be committed by accident.
+What is left is a **project setting overriding framework detection** — Framework Preset
+switched to "Other", or an Output Directory override. Either gives exactly this shape:
+the build command runs and passes, then the output is served as a static directory with
+no `index.html` in it.
 
-**Next step:** decide whether to commit this as one change or split it. Splitting it
-sensibly is a day's work on its own; committing it as one is honest about how it was
-built. Three further sessions have landed on top since that was written, which argues
-for the honest single commit and moving on.
+`frontend/vercel.json` now pins `{ "framework": "nextjs" }`, and `vercel.json` takes
+precedence over the dashboard. It is deliberately that one key: a `buildCommand` or
+`outputDirectory` there would override Vercel's native Next.js handling rather than
+restore it.
+
+**Unverified.** Nobody has watched this deploy. [DEPLOY.md](../DEPLOY.md) lists the
+dashboard overrides to clear if it still 404s.
+
+Also unknown: **the five committed models are 87 MB** of static assets, which is unusual
+for a Vercel deployment and has never been deployed at that size. If a platform limit
+bites, the fix is object storage — nothing in the app assumes the models are same-origin.
+
+## 1a. What is in the repository, and what is not
+
+Resolved, and worth recording because the reasoning was wrong for most of the project's
+life. A VRM's licence carries `commercial_use` and `redistribution` as **separate flags**.
+The models were filtered once on the first, that was recorded as "the licence filter",
+and publishing the files was treated as settled. It was not.
+
+- **Five models are committed** — `free-1`, `free-2`, `free-3`, `free-5`, `free-6`, all
+  declaring `redistribution=allow`.
+- **Three are not** — Momiji, Yuki and Mio declare `redistribution=disallow` while still
+  permitting commercial use. Yuki also says `modification=disallow, credit=necessary`.
+- **No `.vrma` is committed.** The pixiv pack prohibits distributing the motions "in a
+  way that can be rigged or extracted", which a `.vrma` in a public repo is. Its terms
+  file is committed and says where to get the pack.
+
+`npm run licences` reads it out of the files and exits 1 if git is tracking something
+that forbids it. [ASSETS.md](../frontend/public/ASSETS.md) is the human version.
+[Invariant 27](10-invariants.md).
+
+**A fresh clone therefore has five models, an empty Animate menu and no entrance
+animation.** Nothing errors — both lists are built by reading the directory.
 
 ## 1b. The production UI
 
@@ -274,6 +285,19 @@ fixes has been looked at.** Specifically open:
 - **whether the jerk is gone.** It was reproduced and measured headlessly rather than
   watched, so the fix is verified against the numbers and not against an eye. `VRMA_01`
   at about 4.7s and `VRMA_06` at about 3.5s are where it was worst.
+- **whether the end-of-clip 360 is gone.** Reported as *"at the end of every single
+  animation it does a full 360, like a frontflip but sideways"*, traced to unwrapped
+  Euler spellings accumulating over a clip and then being interpolated back down during
+  the fade-out. Now blended as quaternions — [rule 2c](03-frame-loop.md),
+  [invariant 26](10-invariants.md). Measured: `hips` travel during VRMA_01's fade-out
+  fell from 349° to 7°, `leftLowerArm` on VRMA_07 from 840° to 19°. **Numbers again, not
+  an eye.** `Show full body` and `Squat` are the two to watch, and what to watch for is
+  the *last 600 ms* — whether the clip now settles into the idle pose or still snaps.
+- **whether the fade-out still reads as motion at all.** The fix removes rotation that
+  was never real, but VRMA_02's genuine arm movement through its fade dropped slightly
+  too (152° to 132°) because the shortest arc is shorter than the Euler path. That is
+  correct and might be visible; if the release now looks abrupt, `clipFadeMs` is the
+  lever, not the blend.
 - **the entrance.** She is held off screen until the greeting is driving her, the clip
   plays at full weight from frame one, and the springs are reset on the frame she
   reappears. Watched twice in broken forms — first standing-then-sinking-then-leaping,
@@ -539,6 +563,16 @@ itself has still never been called:
 What *is* known: 276 tests including the chunker, the IPA map, the duration normalizer
 and the WAV header parser; `npm run lint` and `npm run build` clean, with `/api/tts` and
 `/api/voices` registered. None of that is evidence about sound.
+
+**The Library voices now have premade fallbacks, and that path is untested too.** Rin,
+Hana and Yoru speak in Voice Library voices, which depend on the account's plan — all
+three returned `402 paid_plan_required` on the free plan while looking normal in
+`/v1/voices`, and the rows had to be reverted by hand. `/api/tts` now retries once on a
+premade spare (Rin→Lily, Hana→Sarah, Yoru→Alice) when the provider says the voice is
+unavailable, and reports `fallbackFrom` so the substitution is not silent. **The retry
+has never fired against the live API**, because that needs a Library voice to actually
+become unavailable; the ids were confirmed `category: 'premade'` on the account, which is
+as far as reading can take it.
 
 **Still open by design, not oversight:** `say()` interrupts on every call, which is right
 for barge-in and wrong for token streaming. A host that streams deltas must buffer to

@@ -142,7 +142,8 @@ npm install
 npm run dev      # http://localhost:3000
 ```
 
-Other scripts: `npm test` (vitest, 422 tests, ~6s), `npm run build`, `npm run lint`.
+Other scripts: `npm test` (vitest, 454 tests, ~6s), `npm run build`, `npm run lint`,
+`npm run licences` (what each model in `public/` permits, and whether git agrees).
 
 It opens in a **waist-up framing**, which is the production target — close enough that
 the face carries the scene, wide enough that shoulder and arm motion still reads. The

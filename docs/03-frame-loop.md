@@ -62,7 +62,8 @@ An `AnimationMixer` writes *straight to the normalized bone nodes*. The composit
 writes straight to the normalized bone nodes. Whichever runs second wins.
 
 So the sequence is: run the mixer, read what it produced back out of the bone nodes into
-a plain `clipPose` object, then blend that against the static pose with `lerpPoses` and
+a plain `clipPose` object, then blend that against the static pose with
+`blendPosesShortest` — **quaternions, not `lerpPoses`**, for the reason in rule 2c — and
 hand the result into the base pose.
 
 Composite first and the compositor silently erases the clip every single frame. The
@@ -111,6 +112,55 @@ nothing is lost by quieting ours while it plays.
 real `AnimationMixer` and a real VRM in Node — no GPU needed, the mixer is pure maths — and
 the frame-to-frame output was compared against the quaternion delta. Reading the code had
 already produced three wrong theories. The script is not kept; it was twenty lines.
+
+## Rule 2c — unwrapping accumulates, so the blend must not read the numbers
+
+Rule 2b's fix has a bill, and it came due as a second bug: *"at the end of every single
+animation it does a full 360, like a frontflip but sideways."*
+
+Choosing the spelling nearest last frame's, every frame, means the choices **add up**.
+Replayed headlessly, here is where each clip's worst bone has drifted to on its final
+frame — all of them describing rotations that sit near zero:
+
+| clip | bone | final spelling |
+|---|---|---|
+| VRMA_01 *Show full body* | `hips.z` | **360.6°** |
+| VRMA_05 *Spin* | `leftLowerArm.z` | **−540.1°** |
+| VRMA_06 *Model pose* | `leftLowerArm.z` | **−359.8°** |
+| VRMA_07 *Squat* | `leftLowerArm.z` | **−721.5°** |
+
+Mid-clip this costs nothing, because at full weight the blend returns `clipPose` exactly
+and the spelling never reaches the screen. **The fade-out is where it shows.** `lerpPoses`
+interpolates the *numbers*, so over the last 600 ms it walked `hips.z` from 360.6° down to
+about 0 — a real, full turn. `hips` is the skeleton root, so the whole body rolled over.
+
+Shifting by whole turns fixes the hips and **not** the arms: their wind-up is the second
+XYZ solution, which rule 2b selects deliberately and no turn-shifting removes.
+
+So the clip is blended as quaternions. A quaternion has no spelling — every Euler triple
+for one rotation converts to the same one, up to sign, which `slerp` resolves by taking
+the short arc. How the clip was written down stops being something the blend can see.
+[`quat.js`](../frontend/src/lib/quat.js) carries the maths in plain JavaScript, because
+`lib/` may not import three ([invariant 4](10-invariants.md)); it is bit-identical to
+three's own conversions over 200k random rotations.
+
+Distance each bone actually travels during the fade-out, measured both ways:
+
+| clip | bone | Euler lerp | shortest arc |
+|---|---|---|---|
+| VRMA_01 | `hips` | 349° | **7°** |
+| VRMA_05 | `rightLowerArm` | 385° | **18°** |
+| VRMA_06 | `leftLowerArm` | 409° | **23°** |
+| VRMA_07 | `leftLowerArm` | 840° | **19°** |
+| VRMA_02 *Greeting* | `rightLowerArm` | 152° | 132° |
+
+**VRMA_02 is the control.** It never wound up, its arm genuinely moves during the fade,
+and the fix leaves that alone — which is the difference between removing a phantom
+rotation and flattening a real one. The regression tests bound the travel from both
+sides for the same reason: a blend that returned a constant pose would also travel 0°.
+
+`lerpPoses` keeps its Euler arithmetic for easing between presets. Its comment — *"these
+are small rotations on a humanoid rig"* — is true there and was never true here.
 
 ## Rule 3 — read the store transiently, never subscribe
 

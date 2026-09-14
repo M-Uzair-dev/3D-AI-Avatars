@@ -27,7 +27,7 @@ No clock, no GPU, no DOM.
 
 What that buys:
 
-- **422 tests run in ~6 seconds** in plain Node. No jsdom, no headless browser, no
+- **454 tests run in ~6 seconds** in plain Node. No jsdom, no headless browser, no
   WebGL context.
 - Layer precedence is unit-testable, which is the kind of bug that is otherwise
   diagnosed by squinting at a rendered avatar.
