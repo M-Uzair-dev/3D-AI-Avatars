@@ -54,6 +54,10 @@ next-env.d.ts
 *.vrm
 *.vrma
 
+# The pixiv motion pack, committed for the demo phase only -- see the repo-root
+# .gitignore for the terms this is an exception to, and what undoing it takes.
+!public/animations/*.vrma
+
 # The five whose metadata says `redistribution=allow`.
 !public/free-1.vrm
 !public/free-2.vrm

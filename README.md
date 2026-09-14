@@ -26,11 +26,14 @@ npm install
 npm run dev          # http://localhost:3000
 ```
 
-**Five models are in the repository and work out of the box**, including the default.
-Three more and all the animation clips are not, because their own licences forbid
-redistributing the file — so a fresh clone gives you five characters, an empty Animate
-menu and no entrance animation. Nothing errors; both lists are built by reading the
-directory.
+**Five models and all six animation clips are in the repository** and work out of the
+box, including the default model. Three further models are not, because their own
+metadata forbids redistributing the file — so a fresh clone gives you five characters
+rather than eight. Nothing errors; the list is built by reading the directory.
+
+The clips are committed **for the demo phase only** and are a deliberate exception to
+their licence, which prohibits redistributing the motions in an extractable form. See
+[ASSETS.md](frontend/public/ASSETS.md) before copying that pattern.
 
 Which models, which flags, and how to restore the rest:
 [frontend/public/ASSETS.md](frontend/public/ASSETS.md).
@@ -143,8 +146,10 @@ what its own licence permits to be — no more.
   should not be. `npm run licences` reads each file and answers it;
   [frontend/public/ASSETS.md](frontend/public/ASSETS.md) is the table. Verify against the
   source page before shipping regardless — metadata is the author's claim, not a warranty.
-- **Animations.** None are committed. The pixiv VRoid pack permits commercial use *with
-  credit* ("Animation credits to pixiv Inc.'s VRoid Project") and prohibits redistributing
-  the motions in a form that can be extracted or re-rigged — which a `.vrma` in a public
-  repository is. Its terms file is committed and says where to get the pack.
+- **Animations.** The pixiv VRoid pack permits commercial use **with credit** —
+  *"Animation credits to pixiv Inc.'s VRoid Project"*, which this product owes and does
+  not yet display — and prohibits redistributing the motions in a form that can be
+  extracted or re-rigged. The clips are nonetheless committed here for the demo phase, a
+  deliberate and temporary exception; [ASSETS.md](frontend/public/ASSETS.md) records what
+  undoing it takes.
 - **Voices.** Rented from whichever provider you configure, under their terms.

@@ -27,10 +27,22 @@
 #   untitled-6.vrm    Yuki   (also modification=disallow, credit=necessary)
 #   untitled-7.vrm    Mio
 #
-# NOT committed, deliberately — the pixiv VRoid motion pack (*.vrma) forbids
-# "distributing these motions or their alterations without permission in a way
-# that can be rigged or extracted", which is exactly what a .vrma in a public
-# repo is. The pack's own terms file IS committed, and it says where to get it.
+# The pixiv VRoid motion pack, committed for the DEMO PHASE at the user's
+# explicit direction, and to be removed when the demo is over.
+#
+# Read this before copying the pattern: the pack's terms prohibit "distributing
+# these motions or their alterations without permission in a way that can be
+# rigged or extracted", and a .vrma in a public repository is that. This is a
+# deliberate, temporary exception taken with the tradeoff understood -- not a
+# precedent, and not evidence that the terms permit it.
+#
+# Worth knowing when the time comes: removing them from the working tree does
+# NOT remove them from git history, from forks, or from GitHub's caches. Undoing
+# this properly means rewriting history, or making the repository private.
+#
+# Using the clips REQUIRES a credit line in the product:
+#   "Animation credits to pixiv Inc.'s VRoid Project"
+!frontend/public/animations/*.vrma
 
 # Unity/VRChat source assets the user dropped in, unpacked out of public/.
 # Hundreds of MB of .psd, .fbx and .unitypackage — none of it is loadable here.

@@ -68,16 +68,19 @@ Both are read at startup, so redeploy after changing either.
 
 ## What a fresh clone is missing
 
-Three of the eight models and all six animation clips are **not in the
-repository**, because their licences forbid redistributing them —
-[frontend/public/ASSETS.md](frontend/public/ASSETS.md) has the table and the
-reasoning.
+Three of the eight models are **not in the repository**, because their own
+metadata forbids redistributing them —
+[frontend/public/ASSETS.md](frontend/public/ASSETS.md) has the table.
 
-So a deployment built straight from a clone has five models, an empty Animate
-menu and no entrance animation. Nothing errors: both lists are built by reading
-the directory.
+The animation clips **are** committed, for the demo phase only and as a
+deliberate exception to their licence. Same file for what that means and what
+undoing it takes.
 
-To deploy the full cast the files have to reach the build environment without
+So a deployment built straight from a clone has five models, a full Animate menu
+and a working entrance. Nothing errors: the model list is built by reading the
+directory.
+
+To deploy the other three the files have to reach the build environment without
 passing through git. Either host them on object storage and point at them, or
 keep a private mirror with the assets committed there.
 

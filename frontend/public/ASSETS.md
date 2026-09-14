@@ -39,35 +39,44 @@ licence: `corporate_commercial_use=allow`, `modification=allow`,
 `credit=necessary` — worth knowing before anyone edits her mesh or ships her
 without a credit line.
 
-**A fresh clone is missing three models.** Nothing breaks: the model list is
-built by reading the directory, so the carousel simply has five stops instead of
-eight, and the default model is one of the five. Drop the other three back into
-`public/` and they reappear, still gitignored.
+**A fresh clone is missing three models**, but has every animation. Nothing
+breaks: the model list is built by reading the directory, so the carousel simply
+has five stops instead of eight, and the default model is one of the five. Drop
+the other three back into `public/` and they reappear, still gitignored.
 
 ## Animations
 
-`public/animations/` holds six clips from the official **pixiv VRoid Motion
-Pack**. The `.vrma` files are **not** in git, and this is the one thing their
-terms name directly:
+`public/animations/` holds six clips from the official **pixiv VRoid Motion Pack**, and
+they **are committed** — for the demo phase, at the project owner's explicit direction,
+to be removed when the demo is over.
 
-> Distributing these motions or their alterations without permission in a way
-> that can be rigged or extracted.
+**This is a deliberate exception, not the rule.** The pack's terms prohibit:
 
-A `.vrma` committed to a public repository is exactly that. The pack's full
-terms are in `animations/LICENCE-pixiv-VRoid.txt`, which **is** committed.
+> Distributing these motions or their alterations without permission in a way that can be
+> rigged or extracted.
 
-**To restore them:** download the VRM Animation motion pack from pixiv's VRoid
-project and copy `VRMA_01`, `VRMA_02`, `VRMA_03`, `VRMA_05`, `VRMA_06` and
-`VRMA_07` into `public/animations/`. `VRMA_04` (*Shoot*) was deliberately
-removed from this project.
+A `.vrma` in a public repository is that. It was taken knowingly, with the tradeoff
+understood. Do not read it as evidence the terms allow it, and do not copy the pattern
+for the next asset without making the same decision deliberately.
 
-Without them the app runs, the Animate menu is empty, and there is no entrance
-animation — `GREETING_CLIP` points at `VRMA_02`, and a missing clip means she
-simply appears rather than waving.
+**Undoing it is not a `git rm`.** Removing the files from the working tree leaves them in
+git history, in every fork, and in GitHub's caches. Cleaning up properly means rewriting
+history or making the repository private. Worth knowing now rather than at the end of the
+demo.
 
-**Using the clips requires a credit line**, in the product and not just here:
+Full terms: `animations/LICENCE-pixiv-VRoid.txt`.
+
+### The credit line is required
+
+Using these clips at all — committed or not — obliges the product to carry:
 
 > Animation credits to pixiv Inc.'s VRoid Project
+
+That is a condition of the licence's commercial-use grant, not a courtesy. **Nothing in
+the UI displays it yet.**
+
+`VRMA_04` (*Shoot*) was deliberately removed from this project; the numbering has a hole
+in it rather than a gap someone forgot to fill.
 
 ## If you add a model
 

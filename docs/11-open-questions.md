@@ -87,16 +87,24 @@ and publishing the files was treated as settled. It was not.
   declaring `redistribution=allow`.
 - **Three are not** — Momiji, Yuki and Mio declare `redistribution=disallow` while still
   permitting commercial use. Yuki also says `modification=disallow, credit=necessary`.
-- **No `.vrma` is committed.** The pixiv pack prohibits distributing the motions "in a
-  way that can be rigged or extracted", which a `.vrma` in a public repo is. Its terms
-  file is committed and says where to get the pack.
+- **The six `.vrma` ARE committed, for the demo phase only.** The pixiv pack prohibits
+  distributing the motions "in a way that can be rigged or extracted", which a `.vrma` in
+  a public repo is. This is a deliberate, temporary exception taken at the project
+  owner's direction with the tradeoff understood — not a change in what the terms allow.
+  **Open, and due before the demo ends:** removing them from the tree does not remove
+  them from git history, forks or GitHub's caches, so the cleanup is a history rewrite or
+  a switch to a private repo. Decide which, early.
+- **The pixiv credit line is owed and not displayed.** *"Animation credits to pixiv Inc.'s
+  VRoid Project"* is a condition of the licence, not a courtesy, and nothing in the UI
+  carries it. This is the smallest open item in the project and the only one that is a
+  licence obligation rather than a judgement.
 
 `npm run licences` reads it out of the files and exits 1 if git is tracking something
 that forbids it. [ASSETS.md](../frontend/public/ASSETS.md) is the human version.
 [Invariant 27](10-invariants.md).
 
-**A fresh clone therefore has five models, an empty Animate menu and no entrance
-animation.** Nothing errors — both lists are built by reading the directory.
+**A fresh clone therefore has five models rather than eight**, but a full Animate menu
+and a working entrance. Nothing errors — the list is built by reading the directory.
 
 ## 1b. The production UI
 
