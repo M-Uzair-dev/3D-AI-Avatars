@@ -88,12 +88,12 @@ export default function AvatarStage({ dev = false }) {
 
   if (dev) {
     return (
-      <div className="flex h-screen w-full flex-col bg-zinc-900 lg:flex-row">
+      <div className="stage-height flex w-full flex-col bg-zinc-900 lg:flex-row">
         <div className="relative min-h-0 flex-1">
           {scene}
           <MissingModelNotice progress={progress} error={error} />
         </div>
-        <aside className="w-full shrink-0 border-t border-zinc-800 bg-zinc-900 lg:h-screen lg:w-80 lg:border-l lg:border-t-0">
+        <aside className="w-full shrink-0 border-t border-zinc-800 bg-zinc-900 lg:stage-height lg:w-80 lg:border-l lg:border-t-0">
           <ControlPanel vrm={vrm} />
         </aside>
       </div>
@@ -112,7 +112,7 @@ export default function AvatarStage({ dev = false }) {
     // scene background, so it costs nothing per frame and can be tuned in CSS —
     // including being recoloured per character, which as a three.js background
     // would have meant touching the renderer.
-    <div className="cyclorama relative h-screen w-full overflow-hidden" style={backdrop}>
+    <div className="cyclorama stage-height relative w-full overflow-hidden" style={backdrop}>
       {scene}
       <MissingModelNotice progress={progress} error={error} />
       {/* Stage furniture rather than bar controls: her name above her, and an

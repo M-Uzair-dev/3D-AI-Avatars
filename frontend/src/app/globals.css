@@ -56,6 +56,36 @@ body {
   height: 100%;
 }
 
+/*
+ * FULL-HEIGHT STAGE, ON A PHONE, WITHOUT LOSING THE CONTROL BAR.
+ *
+ * `100vh` is the LARGE viewport: it assumes the browser's own chrome is
+ * retracted. On a phone with the URL bar showing, that is taller than the
+ * window, so a bottom-anchored element sits below the fold -- which is exactly
+ * how the control bar went missing on mobile.
+ *
+ * `100svh` is the SMALL viewport: the height with the chrome expanded, so the
+ * bar is reachable whether the URL bar is showing or not. `dvh` would track the
+ * chrome as it slides, which is correct for reading and wrong here -- the stage
+ * would resize mid-scroll and the camera re-frames on resize, so she would
+ * breathe in and out with the address bar.
+ *
+ * The `vh` line is written first as a fallback, and **the build strips it** --
+ * Lightning CSS drops it because every browser in Tailwind v4's default target
+ * range supports `svh`. That is correct rather than a loss, and it is recorded
+ * here because the source says one thing and the compiled CSS says another: if
+ * this ever has to run on something older, the fix is the build's browser
+ * targets, not re-adding a line the compiler will remove again.
+ *
+ * `@utility` rather than a plain class so Tailwind's variants apply to it --
+ * the workbench needs `lg:stage-height`, and a bare CSS class cannot be
+ * prefixed.
+ */
+@utility stage-height {
+  height: 100vh;
+  height: 100svh;
+}
+
 body {
   margin: 0;
   background: var(--void);

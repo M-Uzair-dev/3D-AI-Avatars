@@ -139,6 +139,12 @@ fixes above, none of which has been looked at:
 - **any model but Momiji in the production layout.** The bar is bottom-anchored and she
   is bust-framed, so on a shorter or wider model the overlap between the two is
   different. Nothing breaks; it is a composition question.
+- ~~**the control bar below the fold on mobile**~~ — **found and fixed.** The stage was
+  `100vh`, the *large* viewport, which assumes the browser chrome is retracted; with a
+  URL bar showing, anything anchored to the bottom of it is off screen. Now `100svh`.
+  Not `dvh`: that tracks the chrome as it slides, and the camera re-frames on resize, so
+  she would breathe in and out with the address bar. See
+  [14](14-stage-and-lighting.md). **Not looked at on a phone since the change.**
 - **the bar below `sm`**, since the state row was changed to wrap on its own after the
   420 px check. It is one flex item in its row, so the parent's `flex-wrap` could not
   break it up — narrow viewports would have overflowed.

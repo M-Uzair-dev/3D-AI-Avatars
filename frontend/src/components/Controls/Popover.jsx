@@ -66,7 +66,7 @@ export default function Popover({ open, onClose, trigger, children, align = 'lef
       {open && (
         <div
           role="menu"
-          className={`lit-surface absolute bottom-full mb-2 z-20 max-h-[52vh] w-72 overflow-y-auto rounded-[var(--radius)] p-1.5 ${
+          className={`lit-surface absolute bottom-full mb-2 z-20 max-h-[52svh] w-72 overflow-y-auto rounded-[var(--radius)] p-1.5 ${
             align === 'right' ? 'right-0' : 'left-0'
           }`}
         >

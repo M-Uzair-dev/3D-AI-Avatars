@@ -10,6 +10,28 @@ See also: [08-state-and-ui.md](08-state-and-ui.md) (the Stage tab)
 
 ---
 
+
+## Full height on a phone: `svh`, not `vh`
+
+The control bar sat **below the fold on mobile**. `100vh` is the *large* viewport
+height — it assumes the browser's chrome is retracted — so with a URL bar showing, the
+stage is taller than the window and anything anchored to its bottom is off screen.
+
+`100svh` is the *small* viewport: the height with the chrome expanded. The bar is
+reachable whether the URL bar is showing or not.
+
+**`dvh` is the wrong tool here**, though it is the one that sounds right. It tracks the
+chrome as it slides, so the stage would resize mid-scroll — and the camera re-frames on
+resize, so she would breathe in and out with the address bar.
+
+It is an `@utility` in [globals.css](../frontend/src/app/globals.css) rather than a plain
+class, because the workbench needs `lg:stage-height` and Tailwind variants only apply to
+real utilities. The `100vh` fallback written above it is **stripped by the build** —
+Lightning CSS knows every browser in Tailwind v4's target range supports `svh`. If that
+ever has to change, the lever is the browser targets, not the stylesheet.
+
+Menus opening upward off the bar are capped at `52svh` for the same reason.
+
 ## Why the first rig washed her out
 
 ```js
