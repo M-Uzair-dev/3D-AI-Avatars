@@ -44,6 +44,19 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# VRM models — large binaries, user-supplied
+# VRM models and animations. The rule and the reasoning are in the repo-root
+# .gitignore; this file repeats the deny so that `frontend/` is self-contained,
+# and repeats the exceptions because the NEAREST .gitignore wins — an exception
+# at the root alone is silently overridden here.
+#
+# What decides it: `redistribution=allow|disallow` in each model's own licence
+# URL, which is a different flag from `commercial_use`. `npm run licences`.
 *.vrm
 *.vrma
+
+# The five whose metadata says `redistribution=allow`.
+!public/free-1.vrm
+!public/free-2.vrm
+!public/free-3.vrm
+!public/free-5.vrm
+!public/free-6.vrm

@@ -46,15 +46,36 @@ function gltfJson(bytes) {
  * Only two licence fields are surfaced, and both were chosen because they can
  * stop a model being used at all rather than because they are interesting:
  *
- *   authorOnly  nobody but the author may use this avatar
- *   commercial  whether it may appear in a product
+ *   authorOnly      nobody but the author may use this avatar
+ *   commercial      whether it may appear in a product
+ *   redistribution  whether the FILE ITSELF may be handed on
  *
  * Everything else in the meta block is a link or a nuance, and belongs in front
  * of a human reading the original rather than in a picker.
+ *
+ * ---------------------------------------------------------------------------
+ * COMMERCIAL AND REDISTRIBUTION ARE DIFFERENT QUESTIONS
+ * ---------------------------------------------------------------------------
+ * They were conflated here for most of this project's life, and the cost was
+ * concrete: the models were filtered to those permitting commercial use, that
+ * was recorded as "the licence filter", and committing them to a public repo
+ * was then treated as settled. It was not. Three of the eight models in
+ * public/ say `corporate_commercial_use=allow` and `redistribution=disallow`
+ * in the same licence URL — ship her in your product, do not hand the file on.
+ *
+ * `commercial` answers *may she appear in the app*. `redistribution` answers
+ * *may this file be committed, mirrored or bundled for download*. Only the
+ * second one governs what is in git.
+ *
+ * `redistribution` is **null when the file does not say**, which is different
+ * from `false`, and callers must treat it as "no" anyway. It is separated from
+ * `false` so that "this model's terms are silent, go and read the source page"
+ * is distinguishable from "this model's terms say no".
  */
 export function parseVrmMeta(bytes) {
   const empty = {
     spec: null, name: '', author: '', authorOnly: false, commercial: false,
+    redistribution: null, licenceUrl: null,
   };
 
   const json = gltfJson(bytes);
@@ -71,6 +92,8 @@ export function parseVrmMeta(bytes) {
   // 0.x: 'Allow' | 'Disallow'.  1.0: 'personalNonProfit' | 'corporation' | ...
   const commercial = String(meta.commercialUsage ?? meta.commercialUssageName ?? '').toLowerCase();
 
+  const licenceUrl = meta.licenseUrl ?? meta.otherLicenseUrl ?? meta.otherPermissionUrl ?? null;
+
   return {
     spec: v1 ? '1.0' : '0.x',
     name: meta.name ?? meta.title ?? '',
@@ -78,7 +101,43 @@ export function parseVrmMeta(bytes) {
     authorOnly: permission === 'onlyauthor',
     commercial: commercial === 'allow' || commercial === 'corporation'
       || commercial === 'personalprofit',
+    redistribution: readRedistribution(meta, licenceUrl),
+    licenceUrl,
   };
+}
+
+/**
+ * May this file be handed on? true, false, or null for "the file does not say".
+ *
+ * Three places carry the answer, and which one applies depends on the spec:
+ *
+ *   1.0  `allowRedistribution`, a plain boolean.
+ *   0.x  `licenseName: 'Redistribution_Prohibited'`, one of the enumerated
+ *        licences — an explicit no that needs no URL.
+ *   0.x  otherwise the VRoid Hub licence URL, which is not a link to terms so
+ *        much as the terms themselves encoded as a query string:
+ *        `...?corporate_commercial_use=allow&redistribution=disallow&...`
+ *
+ * The third is the one that matters in practice: every model in this project is
+ * 0.x with `licenseName: 'Other'`, so the query string is the ONLY statement any
+ * of them makes about redistribution. Reading it is the difference between
+ * knowing and assuming.
+ */
+function readRedistribution(meta, licenceUrl) {
+  if (typeof meta.allowRedistribution === 'boolean') return meta.allowRedistribution;
+
+  if (String(meta.licenseName ?? '').toLowerCase() === 'redistribution_prohibited') return false;
+
+  if (typeof licenceUrl !== 'string') return null;
+  // Parsed by hand rather than with URL: this must stay pure and must not throw
+  // on a licence "URL" that is only URL-shaped, which several of these are.
+  const match = /[?&]redistribution=([^&#]*)/.exec(licenceUrl);
+  if (!match) return null;
+
+  const value = decodeURIComponent(match[1]).toLowerCase();
+  if (value === 'allow') return true;
+  if (value === 'disallow') return false;
+  return null;
 }
 
 /**

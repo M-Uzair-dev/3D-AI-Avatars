@@ -204,16 +204,19 @@ cat-eared avatar — not a configuration anyone wants, and a menu everyone has t
 about. Deriving it removes both the control and the class of bug where it silently
 disagrees with who is on screen.
 
-| Model | Voice | Published labels |
-|---|---|---|
-| Sakura | Laura | young · sassy |
-| **Rin** *(default)* | `XiPS9cXxAVbaIWtGDHDh` | Voice Library — chosen by the user, labels not published to the API |
-| Hana | `BZgkqPqms7Kj9ulSkVzn` | Voice Library — chosen by the user, labels not published to the API |
-| Yoru | `n7534fCgBXcPEM82JQYu` | Voice Library — chosen by the user, labels not published to the API |
-| Kuro | Matilda | american · upbeat |
-| Momiji | Jessica | young · cute · warm |
-| Yuki | Bella | bright · warm |
-| **Mio** | **Will** | **male** · young · chill |
+| Model | Voice | Source | Published labels | Falls back to |
+|---|---|---|---|---|
+| Sakura | Laura | premade | young · sassy | — |
+| **Rin** *(default)* | **Brittney** `XiPS9cXxAVbaIWtGDHDh` | **Library** | american · young · cute · social media | **Lily** `pFZP5JQG7iQjIQuC4Bku` |
+| Hana | **Eve** `BZgkqPqms7Kj9ulSkVzn` | **Library** | american · young · upbeat · conversational | **Sarah** `EXAVITQu4vr4xnSDxMaL` |
+| Yoru | **Pipi** `n7534fCgBXcPEM82JQYu` | **Library** | japanese · young · cute · characters/animation | **Alice** `Xb7hH8MSUJpSbSDYk0k2` |
+| Kuro | Matilda | premade | american · upbeat | — |
+| Momiji | Jessica | premade | young · cute · warm | — |
+| Yuki | Bella | premade | bright · warm | — |
+| **Mio** | **Will** | premade | **male** · young · chill | — |
+
+Pipi is the only voice in the cast actually published as *anime*, which is the
+register this avatar wants and the whole reason the Library is worth having.
 
 Mio is deliberately the one male voice, which is also the only reason Yuki and Mio — the
 same character model with a beret between them — are told apart by ear at all.
@@ -230,11 +233,17 @@ Consequences worth knowing:
   offers no way to change it.
 
 **Rin, Hana and Yoru are Voice Library voices**, picked by ear rather than from the
-premade list, which is why their rows carry an id rather than a name: a voice that is not
-on the account does not appear in `/v1/voices`, so there is nothing to read a name or a
-label off. All three were confirmed by **synthesising through them** — the only check
+premade list. All three were confirmed by **synthesising through them** — the only check
 that means anything here, see below. The other five rows are still premade voices
 reasoned from published labels.
+
+Their rows once carried a bare id and a note that Library voices publish no name or
+labels to the API. That was wrong, and worth correcting rather than deleting: a Library
+voice **that has been added to the account** appears in `/v1/voices` like any other, with
+its name, its `labels`, and `category: 'professional'` marking it as not-premade. All
+three of these have been added, which is how the names and labels above were read off
+rather than guessed. The claim was true of a Library voice that is *not* on the account —
+a real case, since one still synthesises — and got generalised to all of them.
 
 > **Nobody has heard the five premade ones against the models.** They are reasoned from
 > the labels ElevenLabs publishes and the look notes beside them, which makes them a

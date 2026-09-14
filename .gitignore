@@ -1,9 +1,36 @@
 # SDD scratch workspace
 .superpowers/
 
-# VRM models and animations — large user-supplied binaries
+# VRM models and animations — large user-supplied binaries.
+#
+# Default-deny, with an exception list, because the decision is per FILE and
+# per LICENCE rather than per extension. Every .vrm carries a licence URL in its
+# own metadata, and `redistribution=allow|disallow` in that URL is what decides
+# whether it may be committed to a public repo. `commercial_use=allow` is a
+# DIFFERENT flag and does not imply it: three of the eight models here permit
+# commercial use and forbid redistribution.
+#
+# `npm run licences` prints the table. Read it before adding a line below.
 *.vrm
 *.vrma
+
+# The five models whose own metadata says `redistribution=allow`.
+# All five are AnimeFreak's FREE series, VRoid Hub licence, credit unnecessary.
+!frontend/public/free-1.vrm
+!frontend/public/free-2.vrm
+!frontend/public/free-3.vrm
+!frontend/public/free-5.vrm
+!frontend/public/free-6.vrm
+
+# NOT committed, deliberately — each says `redistribution=disallow`:
+#   haishin-chan.vrm  Momiji
+#   untitled-6.vrm    Yuki   (also modification=disallow, credit=necessary)
+#   untitled-7.vrm    Mio
+#
+# NOT committed, deliberately — the pixiv VRoid motion pack (*.vrma) forbids
+# "distributing these motions or their alterations without permission in a way
+# that can be rigged or extracted", which is exactly what a .vrma in a public
+# repo is. The pack's own terms file IS committed, and it says where to get it.
 
 # Unity/VRChat source assets the user dropped in, unpacked out of public/.
 # Hundreds of MB of .psd, .fbx and .unitypackage — none of it is loadable here.
