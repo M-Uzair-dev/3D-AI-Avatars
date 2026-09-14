@@ -5,6 +5,7 @@ import { useFrame } from '@react-three/fiber';
 import { Vector3 } from 'three';
 import { VISEMES, DEFAULTS } from '@/lib/constants.js';
 import { compositeBones, lerpPoses, addPoses, blendPoseSubset, scalePose } from '@/lib/composite.js';
+import { blendPosesShortest } from '@/lib/quat.js';
 import { POSES } from '@/lib/poses.js';
 import { smoothstep } from '@/lib/gestures.js';
 import { overlayFor, statePoseFor, relaxedHandPose } from '@/lib/postures.js';
@@ -510,7 +511,15 @@ export default function VrmAvatar({ onLoaded, onProgress, onError }) {
     const idleUnderClip = 1 - clipInfluence;
     const basePose = addPoses(
       clipPose
-        ? lerpPoses(currentPose.current, clipPose, clipInfluence)
+        // SHORTEST ARC, not an Euler lerp. `clipPose` is unwrapped for
+        // continuity, and unwrapping accumulates: by the end of a clip a bone
+        // can sit a full turn or more past where it started, spelling the same
+        // rotation with a much bigger number. Interpolating those numbers down
+        // to the static pose walked `hips.z` through 360 degrees over the
+        // fade-out and cartwheeled the whole body sideways at the end of every
+        // wound-up clip. A quaternion has no spelling, so the blend cannot see
+        // the winding at all. See lib/quat.js.
+        ? blendPosesShortest(currentPose.current, clipPose, clipInfluence)
         : currentPose.current,
       scalePose(currentOverlay.current, idleUnderClip),
       relaxedHandPose(s.idle.handRelax * idleUnderClip),
