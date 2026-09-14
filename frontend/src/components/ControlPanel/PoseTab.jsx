@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { POSE_NAMES, POSES } from '@/lib/poses.js';
 import { listBones } from '@/lib/vrmIntrospect.js';
 import { compositeBones } from '@/lib/composite.js';
+import { clipLabel } from '@/lib/constants.js';
 import { useAvatarStore } from '@/stores/avatarStore.js';
 import Slider from './Slider.jsx';
 
@@ -88,7 +89,7 @@ export default function PoseTab({ vrm }) {
           <>
             <div className="flex flex-col gap-1.5">
               <button
-                onClick={() => setClip(null)}
+                onClick={() => { setClip(null); setClipWeight(0); }}
                 className={`rounded border px-2 py-1.5 text-left text-[11px] transition-colors ${
                   clipUrl === null
                     ? 'border-zinc-300 bg-zinc-200 text-zinc-900'
@@ -100,16 +101,19 @@ export default function PoseTab({ vrm }) {
               {clips.map((file) => {
                 const url = `/animations/${file}`;
                 return (
+                  // Playing a clip is one click: selecting it and then dragging
+                  // the blend to 1 was two steps for what is nearly always the
+                  // same intent — watch this one.
                   <button
                     key={file}
-                    onClick={() => setClip(url)}
+                    onClick={() => { setClip(url); setClipWeight(1); }}
                     className={`rounded border px-2 py-1.5 text-left text-[11px] transition-colors ${
                       clipUrl === url
                         ? 'border-zinc-300 bg-zinc-200 text-zinc-900'
                         : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'
                     }`}
                   >
-                    {file}
+                    {clipLabel(file)}
                   </button>
                 );
               })}
@@ -117,7 +121,7 @@ export default function PoseTab({ vrm }) {
             <Slider
               label="Clip blend" value={clipWeight} min={0} max={1} step={0.01}
               onChange={setClipWeight}
-              hint="0 is the static pose, 1 is the clip."
+              hint="0 is the static pose, 1 is the clip. Clicking a clip sets it to 1. A clip plays once, then hands the body back to the idle layer and deselects itself."
             />
           </>
         )}

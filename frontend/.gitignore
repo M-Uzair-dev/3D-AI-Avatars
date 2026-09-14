@@ -32,6 +32,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...but the example is documentation: it names the variables without holding
+# any of their values, and a checkout with no record of them is a checkout
+# nobody can configure.
+!.env.example
 
 # vercel
 .vercel

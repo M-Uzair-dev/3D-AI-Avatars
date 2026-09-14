@@ -4,14 +4,11 @@
  * Idle is not garnish. A face that is perfectly still between sentences reads as
  * dead, and no amount of lip-sync quality compensates. This is roughly thirty
  * lines and it does more perceptual work than the viseme pipeline.
+ *
+ * Blinking used to live here as a symmetric half-sine. It moved to blink.js
+ * when it stopped being a pure shape and grew scheduling decisions of its own
+ * — doubles, and coupling to the gaze.
  */
-
-/** Blink envelope: 0 open, 1 fully closed, smooth in and out. */
-export function blinkValue(elapsedMs, duration) {
-  if (elapsedMs < 0 || elapsedMs > duration) return 0;
-  // Half a sine period: 0 -> 1 -> 0 across the blink.
-  return Math.sin((elapsedMs / duration) * Math.PI);
-}
 
 /**
  * Head drift as summed out-of-phase sines.
@@ -29,7 +26,15 @@ export function driftDeltas(tSec, amplitude, speed) {
   };
 }
 
-/** Chest rise and fall. Slow, single axis. */
+/**
+ * Chest rise and fall. Slow, single axis.
+ *
+ * SUPERSEDED by `breathChain` in aliveness.js, which drives the same
+ * oscillator but also lifts the shoulders and floats the head — a chest bone
+ * rotating alone is nearly invisible on a clothed model, because the silhouette
+ * never changes. Kept here because it is the clearest possible statement of the
+ * idea, and because the contrast between the two is the lesson.
+ */
 export function breathDelta(tSec, amplitude, rate) {
   return { x: amplitude * Math.sin(tSec * rate * Math.PI * 2), y: 0, z: 0 };
 }

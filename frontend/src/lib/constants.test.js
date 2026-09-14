@@ -1,9 +1,33 @@
 import { describe, it, expect } from 'vitest';
-import { MODEL_URL, VISEMES, DEFAULTS } from './constants.js';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { readdirSync } from 'node:fs';
+import {
+  MODEL_URL, GREETING_CLIP, VISEMES, DEFAULTS, clipLabel, MODEL_NAMES, modelName, modelBlurb,
+  modelVoice, modelVoiceForUrl,
+} from './constants.js';
+import { parseVoiceId } from './voiceId.js';
+import { modelPalette, modelPaletteForUrl } from './constants.js';
 
 describe('constants', () => {
-  it('points at the model in public/', () => {
-    expect(MODEL_URL).toBe('/model.vrm');
+  it('points at a model that is actually in public/', () => {
+    // This used to pin the filename, which asserted nothing useful: it was
+    // green right up until the file it named was deleted, and the failure it
+    // then reported was "the string changed" rather than "the app cannot load".
+    //
+    // Checking the file exists catches the real fault. It caught it once
+    // already — the models were filtered down to those licensed for commercial
+    // use, and MODEL_URL was left pointing at one of the casualties.
+    //
+    // Touching the filesystem from a lib test is the one exception in the
+    // suite, and it earns it: MODEL_URL's entire job is to name a real file,
+    // and nothing else in the project can tell you whether it does.
+    expect(existsSync(join(process.cwd(), 'public', MODEL_URL.replace(/^\//, '')))).toBe(true);
+  });
+
+  it('labels the pixiv motion pack, and falls back to the filename', () => {
+    expect(clipLabel('VRMA_02.vrma')).toBe('Greeting');
+    expect(clipLabel('something-else.vrma')).toBe('something-else');
   });
 
   it('defines exactly the five VRM viseme shapes', () => {
@@ -14,5 +38,186 @@ describe('constants', () => {
     expect(DEFAULTS.stiffness).toBeGreaterThan(0);
     expect(DEFAULTS.rate).toBe(1);
     expect(DEFAULTS.idleAttenuationWhileSpeaking).toBeLessThan(1);
+  });
+});
+
+describe('model names', () => {
+  const PUBLIC = join(process.cwd(), 'public');
+
+  // The whole value of this table is that a name corresponds to a character
+  // someone looked at. A row naming a file that is gone is worse than no row:
+  // it silently falls back while still looking maintained.
+  it('names only models that are actually installed', () => {
+    for (const file of Object.keys(MODEL_NAMES)) {
+      expect(existsSync(join(PUBLIC, file)), `${file} is named but missing`).toBe(true);
+    }
+  });
+
+  it('covers every installed model, so none shows up as "FREE 5"', () => {
+    const installed = readdirSync(PUBLIC).filter((f) => /\.vrm$/i.test(f));
+    for (const file of installed) {
+      expect(MODEL_NAMES[file], `${file} has no human name`).toBeDefined();
+    }
+  });
+
+  it('gives every model a distinct name', () => {
+    const names = Object.values(MODEL_NAMES).map((m) => m.name);
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it('falls back to the declared label for an unknown file', () => {
+    expect(modelName('dropped-in.vrm', 'Some Declared Name')).toBe('Some Declared Name');
+  });
+
+  it('falls back to the bare stem when nothing is declared either', () => {
+    expect(modelName('dropped-in.vrm')).toBe('dropped-in');
+  });
+
+  it('prefers our name over the declared one', () => {
+    expect(modelName('free-1.vrm', 'FREE')).toBe('Sakura');
+  });
+
+  it('has no blurb for an unknown file', () => {
+    expect(modelBlurb('dropped-in.vrm')).toBeNull();
+  });
+});
+
+describe('model voices', () => {
+  // The voice belongs to the model, so every model has to have one — a missing
+  // row is silent (it falls through to the env default), which means the wrong
+  // character speaks and nothing reports it.
+  it('gives every named model a voice', () => {
+    for (const [file, entry] of Object.entries(MODEL_NAMES)) {
+      expect(entry.voice, `${file} has no voice`).toBeTruthy();
+    }
+  });
+
+  it('uses qualified provider:id voice ids throughout', () => {
+    for (const [file, entry] of Object.entries(MODEL_NAMES)) {
+      const parsed = parseVoiceId(entry.voice);
+      expect(parsed?.provider, `${file} voice is not provider-qualified`).toBeTruthy();
+      expect(parsed.id.length).toBeGreaterThan(0);
+    }
+  });
+
+  // Two characters sharing a voice is almost certainly a copy-paste rather than
+  // a decision, and it is invisible until you switch between them and hear the
+  // same person twice.
+  it('gives each model a distinct voice', () => {
+    const voices = Object.values(MODEL_NAMES).map((m) => m.voice);
+    expect(new Set(voices).size).toBe(voices.length);
+  });
+
+  // Mio is deliberately the one male voice in the cast. Pinning it because it
+  // is the single intentional asymmetry in the table and the easiest thing to
+  // undo by accident while rebalancing the others after listening.
+  it('gives Mio a different voice from every other model', () => {
+    const mio = MODEL_NAMES['untitled-7.vrm'];
+    expect(mio.name).toBe('Mio');
+
+    const others = Object.entries(MODEL_NAMES)
+      .filter(([file]) => file !== 'untitled-7.vrm')
+      .map(([, m]) => m.voice);
+    expect(others).not.toContain(mio.voice);
+  });
+
+  // Yuki and Mio are the same character model with a beret between them, which
+  // makes them the pair most likely to be given one voice by mistake.
+  it('does not give Yuki and Mio the same voice', () => {
+    expect(MODEL_NAMES['untitled-6.vrm'].voice)
+      .not.toBe(MODEL_NAMES['untitled-7.vrm'].voice);
+  });
+
+  it('resolves a voice from a filename and from a store URL alike', () => {
+    expect(modelVoice('haishin-chan.vrm')).toBe(MODEL_NAMES['haishin-chan.vrm'].voice);
+    expect(modelVoiceForUrl('/haishin-chan.vrm')).toBe(MODEL_NAMES['haishin-chan.vrm'].voice);
+    expect(modelVoiceForUrl(MODEL_URL)).toBeTruthy();
+  });
+
+  // A dropped-in .vrm with no row must still speak, on the provider default.
+  it('is null for a model with no row, rather than throwing', () => {
+    expect(modelVoice('not-a-real-model.vrm')).toBeNull();
+    expect(modelVoiceForUrl('/nope.vrm')).toBeNull();
+    expect(modelVoiceForUrl(null)).toBeNull();
+    expect(modelVoiceForUrl(undefined)).toBeNull();
+  });
+
+  describe('model palettes', () => {
+    // The backdrop is driven from this, so a model without one stands in front
+    // of the default plum. That is a working fallback rather than a bug, which
+    // is exactly why it needs a test — nothing on screen would tell you a row
+    // had been missed.
+    it('gives every named model a palette', () => {
+      for (const [file, entry] of Object.entries(MODEL_NAMES)) {
+        expect(entry.palette, `${file} has no palette`).toBeTruthy();
+      }
+    });
+
+    // Main colour and mid-field. A one-colour palette still renders — the stage
+    // repeats it — but it was almost certainly meant to have two.
+    it('gives every palette a main and a secondary colour', () => {
+      for (const [file, entry] of Object.entries(MODEL_NAMES)) {
+        expect(entry.palette.length, `${file} has too few colours`)
+          .toBeGreaterThanOrEqual(2);
+      }
+    });
+
+    // These go straight into a CSS custom property. A malformed value does not
+    // throw and does not fail a build — color-mix simply drops the whole
+    // gradient stop, and the backdrop quietly loses a layer.
+    it('uses colours CSS can parse', () => {
+      for (const [file, entry] of Object.entries(MODEL_NAMES)) {
+        for (const colour of entry.palette) {
+          expect(colour, `${file} has a bad colour: ${colour}`)
+            .toMatch(/^#[0-9a-f]{6}$/);
+        }
+      }
+    });
+
+    it('resolves a palette from a filename and from a store URL alike', () => {
+      expect(modelPalette('free-1.vrm')).toEqual(MODEL_NAMES['free-1.vrm'].palette);
+      expect(modelPaletteForUrl('/free-1.vrm')).toEqual(MODEL_NAMES['free-1.vrm'].palette);
+    });
+
+    it('has no palette for a model it has never heard of', () => {
+      expect(modelPalette('ghost.vrm')).toBeNull();
+      expect(modelPaletteForUrl(null)).toBeNull();
+    });
+  });
+
+  describe('the greeting', () => {
+    // Bounded from both sides. Too short and the entrance is routinely skipped
+    // on a cold cache; too long and a blank lit room sits there looking broken.
+    it('waits a sane amount of time for the entrance clip', () => {
+      expect(DEFAULTS.arrivalWaitMs).toBeGreaterThan(400);
+      expect(DEFAULTS.arrivalWaitMs).toBeLessThan(3000);
+    });
+
+    // It fires unprompted on every page load, so a typo here is a feature that
+    // silently never happens — the worst kind, because nothing reports it.
+    it('names a clip in the animations directory, or nothing at all', () => {
+      if (GREETING_CLIP === null) return;
+      expect(GREETING_CLIP).toMatch(/^\/animations\/[^/]+\.vrma$/);
+    });
+
+    // Conditional on the pack being installed, because .vrma is gitignored and
+    // a fresh clone legitimately has none. When the files ARE there, a name
+    // that does not match one of them is a typo and this says so.
+    it('names a file that exists, when the pack is installed', () => {
+      if (GREETING_CLIP === null) return;
+      const dir = join(process.cwd(), 'public', 'animations');
+      if (!existsSync(dir)) return;
+      const file = GREETING_CLIP.replace('/animations/', '');
+      expect(
+        existsSync(join(dir, file)),
+        `${file} is not in public/animations`,
+      ).toBe(true);
+    });
+
+    it('is a clip the menu has a human name for', () => {
+      if (GREETING_CLIP === null) return;
+      const file = GREETING_CLIP.replace('/animations/', '');
+      expect(clipLabel(file)).toBe('Greeting');
+    });
   });
 });

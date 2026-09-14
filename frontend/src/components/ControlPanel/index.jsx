@@ -2,21 +2,25 @@
 
 import { useState } from 'react';
 import SpeechTab from './SpeechTab.jsx';
+import StateTab from './StateTab.jsx';
+import StageTab from './StageTab.jsx';
 import IdleTab from './IdleTab.jsx';
 import ExpressionTab from './ExpressionTab.jsx';
 import PoseTab from './PoseTab.jsx';
 import DebugTab from './DebugTab.jsx';
 
 const TABS = [
+  { id: 'state', label: 'State', Component: StateTab },
   { id: 'speech', label: 'Speech', Component: SpeechTab },
   { id: 'expressions', label: 'Expressions', Component: ExpressionTab },
   { id: 'pose', label: 'Pose', Component: PoseTab },
   { id: 'idle', label: 'Idle', Component: IdleTab },
+  { id: 'stage', label: 'Stage', Component: StageTab },
   { id: 'debug', label: 'Debug', Component: DebugTab },
 ];
 
 export default function ControlPanel({ vrm }) {
-  const [active, setActive] = useState('speech');
+  const [active, setActive] = useState('state');
   const Active = TABS.find((t) => t.id === active)?.Component ?? SpeechTab;
 
   return (

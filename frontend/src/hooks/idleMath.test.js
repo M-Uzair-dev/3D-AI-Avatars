@@ -1,29 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { blinkValue, driftDeltas, breathDelta } from '@/lib/idleMath.js';
-
-describe('blinkValue', () => {
-  it('is closed at the midpoint of the blink', () => {
-    expect(blinkValue(60, 120)).toBeCloseTo(1, 2);
-  });
-
-  it('is open at the start and end', () => {
-    expect(blinkValue(0, 120)).toBeCloseTo(0, 2);
-    expect(blinkValue(120, 120)).toBeCloseTo(0, 2);
-  });
-
-  it('is open outside the blink window', () => {
-    expect(blinkValue(-10, 120)).toBe(0);
-    expect(blinkValue(500, 120)).toBe(0);
-  });
-
-  it('never leaves the 0..1 range', () => {
-    for (let t = -50; t <= 200; t += 3) {
-      const v = blinkValue(t, 120);
-      expect(v).toBeGreaterThanOrEqual(0);
-      expect(v).toBeLessThanOrEqual(1);
-    }
-  });
-});
+import { driftDeltas, breathDelta } from '@/lib/idleMath.js';
 
 describe('driftDeltas', () => {
   it('stays within the requested amplitude on every axis', () => {

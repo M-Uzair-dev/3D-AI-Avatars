@@ -5,6 +5,12 @@
 *.vrm
 *.vrma
 
+# Unity/VRChat source assets the user dropped in, unpacked out of public/.
+# Hundreds of MB of .psd, .fbx and .unitypackage — none of it is loadable here.
+assets-source/
+frontend/public/*.zip
+frontend/public/*.rar
+
 # Dependencies
 node_modules/
 
@@ -17,3 +23,6 @@ frontend/.git.disabled/
 
 # Playwright MCP scratch
 .playwright-mcp/
+
+# Local planning scratch, not part of the project
+docs/superpowers/
