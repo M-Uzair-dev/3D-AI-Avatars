@@ -165,7 +165,16 @@ export default function ModelNav() {
             {currentName}
           </div>
           {blurb && (
-            <div className="truncate text-[12px] leading-snug text-[var(--text-quiet)]">
+            /* NOT `--text-quiet`. That token is #7a7e86, a mid grey tuned for
+               the dark chrome of the bar and the workbench, where it reads as
+               quiet against a near-black panel. This line has no panel under it
+               — it sits on the photograph, at the top of the frame, which is
+               sky in all six rooms — so the same grey lands mid-tone on
+               mid-tone and disappears. Translucent white instead: it keeps the
+               step down from her name, and the nameplate's text shadow carries
+               it over anything behind it. Same conclusion the edge arrows
+               reached, for the same reason. */
+            <div className="truncate text-[12px] leading-snug text-white/85">
               {blurb}
             </div>
           )}

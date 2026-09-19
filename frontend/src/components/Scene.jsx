@@ -300,7 +300,21 @@ export default function Scene({ children, dev = false }) {
 
       {children}
 
-      <OrbitControls makeDefault target={initial.target} maxPolarAngle={Math.PI / 1.8} />
+      {/* ROTATE SPEED IS A FUNCTION OF HOW CLOSE THE CAMERA IS.
+
+          OrbitControls' default of 1.0 maps a drag across the viewport to a
+          half turn, which is calibrated for orbiting an object you are looking
+          at from across a room. This camera sits roughly a metre from her face
+          in the production framing, so the same wrist movement swung her most
+          of the way round and the gesture read as twitchy rather than as
+          turning her. Slowing the mapping is the fix, not clamping the range —
+          the whole orbit is still reachable, it just takes the drag it should. */}
+      <OrbitControls
+        makeDefault
+        target={initial.target}
+        maxPolarAngle={Math.PI / 1.8}
+        rotateSpeed={0.35}
+      />
       <CameraRig />
     </Canvas>
   );
