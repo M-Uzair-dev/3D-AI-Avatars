@@ -22,15 +22,29 @@ import * as vrmCache from '@/models/vrmCache.js';
  * same one you would use on a photo, and it points at where she actually goes.
  *
  * ---------------------------------------------------------------------------
- * WHY NEITHER PIECE HAS A PANEL
+ * THE ARROWS ARE REAL TARGETS NOW. THE NAME IS STILL BARE.
  * ---------------------------------------------------------------------------
- * Everything else in this UI sits on `lit-surface`, and both of these
- * deliberately do not. Two lit chips at the left and right edges would put
- * bright rectangles in the darkest corners of the cyclorama and frame her like
- * a slideshow; a plate behind the name would cut a hole in the backdrop's
- * gradient at its most visible point. Bare text and bare chevrons, with a soft
- * scrim appearing under an arrow only while it is hovered — which is the one
- * moment it has to stay legible against a brightly lit dress.
+ * Both used to be bare — no panel on either — and the argument was good: two
+ * lit chips at the left and right edges would put bright rectangles in the
+ * DARKEST CORNERS OF THE CYCLORAMA and frame her like a slideshow. A soft scrim
+ * appeared under an arrow only on hover, because at rest it sat over a dark
+ * gradient and needed nothing.
+ *
+ * EVERY WORD OF THAT DEPENDED ON THE BACKDROP BEING A DARK GRADIENT. It is a
+ * photograph now, and a photograph has no reliably dark corners: the left edge
+ * of a sunrise is a bright sky, and a thin chevron at 45% opacity over it is
+ * simply not there. A hover scrim cannot help, because you have to find the
+ * control before you can hover it.
+ *
+ * So the arrows are round glass buttons — a real border, a real blur, legible
+ * over anything behind them. The sibling project reached the identical
+ * conclusion from the identical starting point, which is worth knowing before
+ * anyone argues them back to bare chevrons: it is not a style preference, it is
+ * camouflage over a photographic backdrop.
+ *
+ * THE NAME STAYS BARE, and that is not an inconsistency. It sits at the top
+ * centre, over sky in every room, and it is text rather than a target — nobody
+ * has to find it to use it. Its own text shadow carries it.
  *
  * The one motion here is the name changing, and it is allowed for a specific
  * reason: it happens at the midpoint of a transition, while she is off stage.
@@ -59,28 +73,37 @@ function EdgeButton({ direction, onClick, disabled, label }) {
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className={`group pointer-events-auto absolute ${side} top-1/2 z-10 flex h-28 w-16 -translate-y-1/2 items-center justify-center transition-opacity duration-200 sm:w-20 ${
-        disabled
-          ? 'cursor-not-allowed opacity-20'
-          : 'opacity-45 hover:opacity-100 focus-visible:opacity-100'
+      className={`group pointer-events-auto absolute ${side} top-1/2 z-10 flex h-28 w-16 -translate-y-1/2 items-center justify-center sm:w-20 ${
+        disabled ? 'cursor-not-allowed' : ''
       }`}
     >
-      {/* The scrim is the only thing standing between a thin chevron and a
-          white apron. It appears on hover rather than sitting there, because at
-          rest the arrow is over the dark edge of the cyclorama and needs
-          nothing. */}
+      {/* The target itself. Round rather than square: a circle at the edge of a
+          photograph reads as a control laid on the scene, where a rectangle
+          reads as the scene being cropped.
+
+          It holds a low opacity at rest so it never competes with her, and the
+          BORDER AND BLUR are what keep it findable at that opacity — over a
+          bright sky a 45%-opacity chevron alone disappears, but the disc it
+          sits on still reads as an object. */}
       <span
         aria-hidden="true"
-        className={`absolute inset-0 opacity-0 transition-opacity duration-200 ${
-          disabled ? '' : 'group-hover:opacity-100 group-focus-visible:opacity-100'
+        className={`absolute grid size-11 place-items-center rounded-full border transition-all duration-200 ${
+          disabled
+            ? 'border-white/5 bg-black/15 opacity-30'
+            : 'border-white/15 bg-black/25 opacity-70 shadow-[0_6px_18px_-8px_rgba(0,0,0,0.8)] group-hover:border-white/30 group-hover:bg-black/40 group-hover:opacity-100 group-focus-visible:border-white/30 group-focus-visible:bg-black/40 group-focus-visible:opacity-100'
         }`}
         style={{
-          background: `radial-gradient(60% 50% at ${
-            direction < 0 ? '20%' : '80%'
-          } 50%, rgba(8,9,11,0.55) 0%, transparent 100%)`,
+          backdropFilter: 'blur(12px) saturate(120%)',
+          WebkitBackdropFilter: 'blur(12px) saturate(120%)',
         }}
       />
-      <span className="relative text-[var(--text-quiet)] transition-colors duration-200 group-hover:text-[var(--text)] group-focus-visible:text-[var(--text)]">
+      <span
+        className={`relative transition-colors duration-200 ${
+          disabled
+            ? 'text-white/25'
+            : 'text-white/80 group-hover:text-white group-focus-visible:text-white'
+        }`}
+      >
         <Chevron direction={direction} />
       </span>
     </button>

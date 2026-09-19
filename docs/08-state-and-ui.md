@@ -133,7 +133,7 @@ was built on top of it.
 |---|---|---|
 | Shape | One bar floated over a full-bleed scene | Right-hand sidebar, seven tabs |
 | Offers | State, model, animation, speech | Everything, including per-bone sliders |
-| Backdrop | CSS cyclorama behind a transparent canvas | Flat `#16161b` + reference grid |
+| Backdrop | A baked HDRI room on an opaque canvas | Flat `#16161b` + reference grid |
 | Files | [components/Controls/](../frontend/src/components/Controls/) | [components/ControlPanel/](../frontend/src/components/ControlPanel/) |
 
 `dev` is read from `searchParams` in [page.js](../frontend/src/app/page.js) — on the
@@ -143,14 +143,20 @@ up to 14, which is what training data will tell you. See [invariant 12](10-invar
 
 ### The production bar
 
-[Controls/index.jsx](../frontend/src/components/Controls/index.jsx) lays out three
-things in the order you reach for them. **Who is on stage is not one of them** — that
-moved onto the stage itself, see below.
+[Controls/index.jsx](../frontend/src/components/Controls/index.jsx) lays them out in the
+order you reach for them. **Who is on stage is not one of them** — that moved onto the
+stage itself, see below.
+
+**Where she is standing IS one of them**, and the asymmetry is deliberate. Choosing the
+character is the frame around everything else; the room is scenery, changed rarely, with
+nothing at the edge of the screen for an arrow to point at — the room is already
+everywhere. See [14](14-stage-and-lighting.md).
 
 | Control | Job | File |
 |---|---|---|
 | **State row** | All five conversational states, always visible | [StateBar.jsx](../frontend/src/components/Controls/StateBar.jsx) |
 | **Animate** | Clips and promoted gestures in one list, popover | [AnimationMenu.jsx](../frontend/src/components/Controls/AnimationMenu.jsx) |
+| **Room** | The six rooms, as baked thumbnails rather than names | [RoomMenu.jsx](../frontend/src/components/Controls/RoomMenu.jsx) |
 | **Speech** | Input, voice on/off, `Speak`/`Stop` | [SpeechBar.jsx](../frontend/src/components/Controls/SpeechBar.jsx) · [VoiceToggle.jsx](../frontend/src/components/Controls/VoiceToggle.jsx) |
 | *(shared)* | Popover shell; menu trigger | [Popover.jsx](../frontend/src/components/Controls/Popover.jsx) · [MenuButton.jsx](../frontend/src/components/Controls/MenuButton.jsx) |
 
@@ -165,13 +171,19 @@ have**; choosing her is the frame around that rather than another setting inside
 Edge arrows also say something a bar could not: that there is somebody off to either
 side, and that is where she goes.
 
-**Neither piece has a panel**, which is the one deliberate departure from the rest of this
-UI. Everything else sits on `lit-surface`. Two lit chips at the left and right edges would
-put bright rectangles in the darkest corners of the cyclorama and frame her like a
-slideshow; a plate behind the name would cut a hole in the backdrop's gradient at its most
-visible point. So: bare chevrons and bare text, with a soft radial scrim fading in under
-an arrow only while it is hovered — the one moment it has to hold up against a brightly
-lit dress.
+**The arrows are round glass discs; the name is still bare.** Both used to be bare, and
+the argument was good while the backdrop was a CSS gradient: two lit chips at the left and
+right edges would put bright rectangles in the darkest corners of the cyclorama and frame
+her like a slideshow. A radial scrim faded in under an arrow only on hover, because at
+rest it sat over a dark corner and needed nothing.
+
+**That argument died with the cyclorama.** A photographed room has no reliably dark
+corners — the left edge of a sunrise is bright sky — and a hover scrim cannot help,
+because you have to find a control before you can hover it. The arrows carry their own
+border and blur now.
+
+The name stays bare: it is text rather than a target, nobody has to find it to use it, and
+a text shadow carries it over the sky every one of these outdoor rooms puts behind it.
 
 **The name animates, and it is the only unprompted motion in the production UI.** That is
 allowed here for a specific reason rather than as decoration: the name is bound to

@@ -104,15 +104,18 @@ frontend/src/
 
   components/
     AvatarStage.jsx              'use client' boundary, dynamic({ssr:false}), picks surface
-    Scene.jsx                    Canvas, store-driven lights, dev-only grid, CameraRig
+    Scene.jsx                    Canvas, room-driven lights, dev-only grid, CameraRig
+    Room.jsx                     The skybox: scene.background from the chosen room
+    GroundShadow.jsx             Contact-shadow receiver. PORTED BUT NOT MOUNTED — see 14
     VrmAvatar.jsx                THE COMPOSITOR — see 03-frame-loop.md
     MissingModelNotice.jsx       Load progress / failure UI
     Controls/                    PRODUCTION surface — the bar over a full-bleed scene
-      index.jsx                  Bar layout: state row, then animate / speech
+      index.jsx                  Bar layout: state row, then animate / room / speech
       Popover.jsx                Shared menu shell (opens upward, Esc + click-outside)
       StateBar.jsx               All five conversational states, always visible
       ModelNav.jsx               STAGE furniture: edge arrows + her name on top
       AnimationMenu.jsx          Clips + promoted gestures, dispatched by `kind`
+      RoomMenu.jsx               The six rooms, as baked thumbnails
       SpeechBar.jsx              Input, Speak/Stop
       VoiceToggle.jsx            Voice on/off; off still mouths the words
     ControlPanel/                WORKBENCH — reached with ?dev=1
@@ -131,9 +134,14 @@ frontend/src/
 
   lib/                           ALL PURE — no React, no three.js
     carousel.js                  The model ring, its nearest-first order, and eviction
+    backgroundLibrary.js         The six rooms, generated from backgroundRigs.json
+    backgroundRigs.json          Each room's baked key/sky/ground/exposure. COMMITTED DATA
+    stageLighting.js             room rig -> light positions, colours, response tuning
+    mtoonResponse.js             Makes an MToon material respond to light at all — see 14
+    applyMatcap.js               Puts the room's reflection on her. IMPURE — touches three
     unwrapEuler.js               Keeps a clip's Euler read-back continuous frame to frame
     carouselMotion.js            The arc she travels when the cast changes
-    constants.js                 MODEL_URL, MODEL_NAMES (+ each model's voice), VISEMES, DEFAULTS, FRAMINGS
+    constants.js                 MODEL_URL, DEFAULT_ROOM, MODEL_NAMES (+ voices), VISEMES, DEFAULTS, FRAMINGS
     animations.js                Merges .vrma clips + promoted gestures into one list
     visemeMap.js                 Grapheme→viseme tables, durations (silent fallback)
     textToVisemes.js             text → contiguous timeline (silent fallback)

@@ -60,7 +60,9 @@ screen long and every rule on it has already cost someone a debugging session.
 | Change the model carousel or its prefetch | [08](08-state-and-ui.md) |
 | Change how she first appears | [14](14-stage-and-lighting.md) |
 | Work out why a clip jerks or drifts | [03](03-frame-loop.md) |
-| Change the production UI | [08](08-state-and-ui.md) · backdrop in [14](14-stage-and-lighting.md) |
+| Change the production UI | [08](08-state-and-ui.md) · the room in [14](14-stage-and-lighting.md) |
+| Add, change or re-light a room | [14](14-stage-and-lighting.md) |
+| Work out why she looks flat or pasted on | [14](14-stage-and-lighting.md) — the MToon section |
 | Drive the avatar from my app | [12](12-conversational-states.md) |
 | Change how the mouth moves | [04](04-speech-pipeline.md) |
 | Add or fix a pose | [06](06-poses-and-rig.md) |

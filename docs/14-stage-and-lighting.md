@@ -54,25 +54,113 @@ left a flat cutout.
 **2. Nothing separated her from the background.** A dark scene lit only from the front
 gives a silhouette that dissolves into the backdrop.
 
+### And a third one, found much later, larger than both
+
+Neither of those was why she looked like **a sticker colour-matched to a photograph**.
+That complaint survived every fix above, and the cause was not in the lighting at all.
+
+**MToon's diffuse term never multiplies by `dotNL`.**
+
+```glsl
+shading       = linearstep( -1.0 + toony, 1.0 - toony, dotNL + shift );
+directDiffuse = lightColor * BRDF_Lambert( mix( shadeColor, litColor, shading ) );
+```
+
+Unlike a Lambert surface, an MToon surface has **exactly one** way to vary with the
+direction of the light: that ramp between two colours. Make the two colours equal, or
+saturate the ramp, and the surface renders a constant — whatever the lights are doing.
+
+Both are true of the shipped VRoid bodies, measured from their own glTF:
+
+- **`_ShadeColor == _Color`** on hair, brows, eyes, shoes and bottoms, and within 3% on
+  most cloth. The shade side *is* the lit side. On the `Tops` materials it is **inverted**
+  (lit 0.49, shade 0.96), so the sweater was brighter in shadow than in light.
+- **`_ShadeShift = -0.8`** on every face material. After three-vrm's v0 conversion that is
+  `linearstep(-0.09, 0.09, dotNL - 0.8)` — the face is fully in shade colour below
+  `dotNL` 0.71, which is everywhere except a patch pointing within 27 degrees of the key.
+
+So every visible pixel evaluated to `albedo * a constant tint`. **No light rig on this
+page could ever have lit her**, and that is why the problem outlived so many attempts to
+fix it by moving lights around.
+
+The fix is a four-uniform retune in
+[mtoonResponse.js](../frontend/src/lib/mtoonResponse.js), applied in `VrmAvatar.jsx`.
+**Never a material swap** — `MeshStandardMaterial` would light her correctly and destroy
+the art style, which is the one thing that must not change.
+
+Two things about it worth not re-deriving:
+
+- The shade colour is derived from the material's **own lit colour**, not from its
+  authored shade colour. That is what makes one dial work across materials whose authored
+  ratios run from 0.97 to 1.96, and it un-inverts the sweater for free. The authored
+  **hue** is kept and only its magnitude renormalised, because VRoid shades skin pink on
+  purpose.
+- Darkening the shade side is only safe because **`_ShadeTexture === _MainTex`** on all 87
+  measured materials — the shade side samples the same albedo, so the factor multiplies
+  rather than replaces. `shadeTextureFor` checks per material anyway.
+
+**This was measured on five of the eight models** (`free-1/2/3/5/6`). `haishin-chan`,
+`untitled-6` and `untitled-7` have never been through it. Every uniform is derived from
+each material's own values and every clamp is one-directional, so it should generalise —
+but that is reasoning, and reasoning about this renderer is what produced the bug.
+
+**The debugging lesson, which is the transferable part.** Eyeballing said better; two
+metrics said worse; *both metrics were wrong*. Left-right luminance spread went down
+because most of the old spread was the additive matcap — **view space**, varying with the
+camera and not the room, which is exactly what an overlay looks like numerically. And the
+spread did not flip between a left-lit and a right-lit room because the samples were on
+the flat frontal chest, where a frontal key lights everything and a rear key shades
+everything. Isolating the key — every other light to zero — settled it in one
+measurement. **Isolate the variable before trusting a metric over your eyes.**
+
 ## The rig
+
+**Every position and colour in it is derived from the room now.** What follows is the
+studio fallback — what the workbench gets, and what a null rig resolves to.
 
 | Light | Value | Job |
 |---|---|---|
-| `ambientLight` | 0.06 | A floor under the darkest shadows. **Not** fill. |
-| `hemisphereLight` | 0.36 | Directional fill — cool `#b9c7ff` above, warm `#4a3a42` bounce below |
-| key `directionalLight` | 0.82 | From `[2.6, 3.2, 2.4]`, well off-axis so the face gets a terminator rather than flat frontal light |
-| fill `directionalLight` | 0.2 | `#cfd8ff`, keeps the shadow side off black |
-| **rim** `directionalLight` | 1.0 | `#dfe6ff` from `[-1.6, 2.6, -3]` — behind and above |
-| `toneMappingExposure` | 0.78 | Stops near-white surfaces clipping |
-| key warmth | 0.35 | Tints the key toward candlelight |
+| `ambientLight` | 0.018 | A floor under the darkest shadows. **Not** fill. |
+| `hemisphereLight` | 0.132 | Directional fill — the room's sky above, its ground bounce below |
+| key `directionalLight` | 1.05 | The room's own key direction; in the studio, `[2.6, 3.2, 2.4]` |
+| fill `directionalLight` | 0.072 | Opposite the key and nearer the horizon, derived |
+| **rim** `directionalLight` | 1.0 | From `[-1.6, 2.6, -3]` — behind and above, colour opposing the room |
+| `toneMappingExposure` | per room | Baked with the skybox; 0.78 in the studio |
+| key warmth | 0.35 | Tints the key toward candlelight. **Studio only** |
+
+The first four were scaled to **0.6x** when the rooms arrived (they were 0.06 / 0.36 /
+0.82 / 0.2). Against a flat gradient they were right; against a photograph the fill was
+doing so much work that her shadow side was nearly as bright as her lit side, so there
+was no form left to see.
+
+**Contrast on an MToon model is the ratio between the key and everything else, not the
+exposure.** Exposure moves both ends together and changes nothing about the separation.
+To make her read harder, widen the gap: raise `key`, lower `hemisphere` and `fill`. The
+key is deliberately *not* scaled with the other three — dividing the two is what raises
+contrast rather than merely darkening her.
 
 **The rim is the single biggest improvement in the file.** A light from behind and
 above catches the edge of the hair and the shoulders and draws a bright line around the
 character. It is most of the reason good VTuber renders look the way they do, and it
 costs one light. Drag it to zero in the Stage tab to see how much it was doing.
 
-Splitting colour temperature between a warm key and a cool fill is a photographic
-habit, and it does a surprising amount of the "this feels friendly" work on its own.
+It is kept at full strength now there are rooms rather than scaled with the rest: a
+photograph is a far busier thing to be lost against than a gradient was, so the light
+separating her silhouette matters *more*, not less. Its **colour opposes the room**
+rather than matching it — a white rim on a snowy field is the one case this light exists
+for and the one case a fixed cool white could not handle. See `rimColorFor` in
+[stageLighting.js](../frontend/src/lib/stageLighting.js).
+
+### The division of labour
+
+| | decides |
+|---|---|
+| the **room** | key and fill *position*, every light *colour*, exposure |
+| the **store** | every *intensity*, and the material response tuning |
+
+So the Stage tab's sliders still do what they always did: they set how much, not from
+where. Changing room reseeds `exposure` and nothing else, which is what keeps the slider
+honest rather than silently fighting a value it cannot see.
 
 ## Two implementation details
 
@@ -96,38 +184,178 @@ would have to re-run to catch it, where a per-frame ref comparison just works.
 `children` passes through by element identity, so a lighting change re-renders five
 lights and nothing else.
 
-## The backdrop
+## The backdrop is a room she is standing in
 
-Two different backgrounds, chosen by surface.
+**This replaced the cyclorama**, which was a CSS sweep painted behind a transparent
+canvas and tinted per character from her own palette. That is gone: the class, the
+`@property` crossfade, the `--pool` variables and the `palette` wiring in `AvatarStage`.
 
-The **workbench** paints `#16161b` into the scene and draws the reference grid. Both are
-right for a workbench: the grid gives the eye a ground plane while you are dragging
-bones around.
+It was good and it was cheap, and it could not survive a real room. **A DOM layer does
+not move when the camera moves**, so with a photograph behind her, orbiting reads as her
+spinning inside it. On `scene.background` the equirect is world-fixed and the parallax is
+free — it falls out of moving the camera rather than being a second thing to animate and
+keep in sync.
 
-The **production** view uses neither. The canvas is transparent (`gl={{ alpha: true }}`,
-no `<color attach="background">`) and a CSS layer shows through from behind — the
-`.cyclorama` class in [globals.css](../frontend/src/app/globals.css).
+The canvas is **opaque** now. `gl={{ alpha: true }}` existed only so the CSS layer could
+show through from behind it.
 
-It is built as a photographic sweep rather than a linear gradient, which is the whole
-idea: a studio backdrop is not a flat wash and not a top-to-bottom fade, it is a **pool
-of light behind the subject falling off to darkness at the corners**. Two layers do it —
-a large radial pool centred just above and behind her head, plus a slight vertical grade
-because the air in a real room is lighter than the floor.
+### Six rooms, and what each one ships
 
-It earns its place twice over. The rim light — the single biggest win in the lighting
-rig — now separates her against dark corners instead of flat grey, and a centred pool
-pulls the eye to her face for free.
+Each room is three files in `public/backgrounds/baked/`, plus a row in
+[backgroundRigs.json](../frontend/src/lib/backgroundRigs.json):
 
-Being DOM rather than scene, it costs nothing per frame and is tuned in CSS.
+| file | what it is |
+|---|---|
+| `<id>.webp` | the equirect skybox, already tone-mapped to LDR |
+| `<id>-matcap.png` | the diffuse convolution MToon samples instead of an env map |
+| `<id>-thumb.webp` | the picker tile |
 
-**The first cut was invisible.** `--pool` was `#232026` against a `#08090b` void, which
-measured on screen as very nearly the void itself. A gradient you have to be told is
-there is not a gradient; it is now `#3a3340` with a hotter `#4a4152` centre. The same
-mistake as the conversational-state overlays, in a different medium — see
-[12-conversational-states.md](12-conversational-states.md).
+The rig row is the HDRI reduced to numbers: a key **direction**, a key **colour**, a
+**sky** and a **ground** colour, an **exposure** and a **backgroundIntensity**.
+[backgroundLibrary.js](../frontend/src/lib/backgroundLibrary.js) generates the room list
+from that file, so the list and the assets cannot drift apart through someone editing one
+and forgetting the other. A test asserts every generated URL has a real file behind it.
 
-The grid is dev-only for a second reason beyond looking like a 3D editor: a horizon line
-across the lower frame contradicts the seamless sweep the backdrop is imitating.
+**There is no bake script in this repo.** The `.exr` sources, the equirect / lightRig /
+matcap modules and `bake-backgrounds.mjs` all live in the host project. So **the room set
+here is fixed at six**, and `backgroundRigs.json` is a committed artifact rather than
+something you can regenerate. Adding a room means baking it over there and copying four
+files across.
+
+### The tone curve is load-bearing in two directions
+
+`Scene.jsx` names `NeutralToneMapping` explicitly. Three separate things depend on it:
+
+1. **Neutral, never ACES.** R3F defaults to ACESFilmic, which desaturates saturated hues
+   on the way to the highlight — and saturated hues are most of what an anime model is
+   made of. **It turns pink hair grey.** Khronos PBR Neutral rolls the highlight off
+   while holding the hue, which is the entire reason it exists.
+2. **The skyboxes were baked through this curve**, with each room's own exposure already
+   applied. The backdrop and the character agree only because the renderer finishes with
+   the operator the bake started with. Change it and every room is mis-exposed against
+   the person standing in it.
+3. It is what switches `toneMappingExposure` on at all. Under three's `NoToneMapping`
+   default that value is read by nothing — **a tuned exposure wired to nothing survived
+   an entire milestone in the host project**, because a tuned constant sitting next to an
+   unset mode looks completely fine in a grep.
+
+### MToon cannot sample an environment map. Check before trying again.
+
+`scene.environment` does **nothing** to an MToon material: the `envmap_fragment` include
+is commented out in its own shader and the indirect path is gated on
+`defined( STANDARD )`, which MToon never defines. That is why this is a light rig plus a
+matcap rather than IBL, and why a PMREM here would cost a convolution per room change and
+light exactly zero pixels.
+
+The matcap is the room's only route to her surface, and it goes on at `0.10` strength —
+low on purpose. MToon **adds** the matcap, and a convolved room is a mid-grey disc, so the
+slot adds a constant to every pixel whichever way it faces. That is the definition of
+raising the black point, which is the same mistake `ambient` was dropped from 0.6 to undo,
+arriving back through a different door. At the host project's original 0.22 a black frill
+rendered at RGB 50 and a sixth of the tonal range was gone.
+
+The matcap is **view-space** and does not rotate when you orbit. Accepted deliberately.
+
+### Two dials both read as "the environment on her"
+
+They fail differently, and telling them apart is most of tuning this:
+
+| dial | where | what too much of it looks like |
+|---|---|---|
+| `shadeTintAmount` | `DEFAULTS.lighting` | her **shadows are the wrong colour** — the room reads as a cast ON her |
+| `MATCAP_STRENGTH` | [applyMatcap.js](../frontend/src/lib/applyMatcap.js) | a **film over all of her**, blacks lifted, whichever way a surface faces |
+
+`shadeTintAmount` went **0.30 -> 0.18** after one look in a browser: the room was reading
+as a colour cast rather than as bounce inside the shadows, which is the exact failure this
+whole milestone exists to undo, arriving through the one door still open to it. Her
+shadows keep the room's hue; they no longer take its saturation.
+
+`MATCAP_STRENGTH` is `0.10` and has not needed moving.
+
+**Neither is live-tunable.** Both are read when the material effect runs, which is keyed
+on `[vrm, room]` in `VrmAvatar.jsx` — so editing a constant needs a **hard reload**, not a
+Fast Refresh, and stepping to another room and back also works. Give one of them a slider
+and it will appear to do nothing until it is added to those deps.
+
+### The shadow map is PCF, and that is not a downgrade
+
+`Scene.jsx` passes a bare `shadows`, which is `PCFShadowMap`. **Not `shadows="soft"`.**
+
+`PCFSoftShadowMap` is deprecated in three 0.185: it warns and silently downgrades to PCF
+anyway, so the only thing asking for it bought was a console warning on every frame batch.
+
+Nothing is lost, because PCF is what absorbed the soft sampling —
+`SHADOWMAP_TYPE_PCF` is now a **five-tap Vogel disk** scaled by
+`shadowRadius * texelSize`. So `shadowRadius: 4` in `DEFAULTS.lighting` is live and is
+still the penumbra dial. Above about 8 the penumbra grows wider than the features casting
+it and her chin stops shadowing her neck.
+
+This was found by reading the browser console, not by a test — a deprecation that
+downgrades rather than throws is invisible to everything else.
+
+`shadow-normalBias` rather than `shadow-bias`: these are **skinned** meshes, and a depth
+bias on a skinned mesh detaches the shadow from the surface casting it.
+
+### She still has nothing to stand on
+
+`GroundShadow` is ported, wired and **commented out** at the call site in `Scene.jsx`.
+
+The scene contains her and nothing else, so `castShadow` has no surface to fall on and no
+setting of anything produces a contact shadow. She self-shadows — chin onto neck, fringe
+onto forehead, which is where most of her depth comes from — but she casts nothing onto
+the world, and a figure with no relationship to the ground reads as a cutout.
+
+The reason it is off: the cast streak runs off the edge of the key's shadow frustum and
+**stops dead**, which reads as a torn rectangle lying on the floor and is worse than no
+shadow at all. The real fix is to size the shadow camera to the *cast* rather than to the
+disc. [GroundShadow.jsx](../frontend/src/components/GroundShadow.jsx) says so at the top.
+
+### What it opens with
+
+| | | why |
+|---|---|---|
+| `MODEL_URL` | `/free-1.vrm` (Sakura) | Pink hair and a white coat are the hardest thing in the cast for a room to light without washing out, so the default is also the one that shows a lighting fault soonest |
+| `DEFAULT_ROOM` | `palermo-square` | Hard noon sun. A high, hard key is the room that best SHOWS the retune — real terminator, real shadow side — and the harshest test of it |
+
+Soft daylight flatters everyone and proves nothing, which makes `suburban-garden` the
+safer default and the worse first impression. Both are one constant in
+[constants.js](../frontend/src/lib/constants.js).
+
+Sakura carries **no voice fallback** and needs none: her voice is a premade, which works on
+every plan and cannot be withdrawn. Only the three Library voices carry a spare. A test
+used to assert the default model *had* a fallback — that was a proxy for "the default
+happens to use a Library voice", and it went red the day the default changed with nothing
+about the lookup broken. It asserts the two spellings agree now.
+
+### Picking a room
+
+A menu on the control bar, showing the baked thumbnails rather than the names — "Spruit
+Sunrise" and "Palermo Square" tell you nothing about what either will do to the picture,
+and the difference between them is entirely visual.
+
+It is **on the bar**, where the model picker deliberately is not. `ModelNav` argues that
+choosing *who* is on stage is the frame around everything else; the room is the opposite
+case. It is scenery, you change it rarely, and there is nothing at the edge of the screen
+for an arrow to point at, because the room is already everywhere.
+
+The choice is **global rather than per-model**: walking the carousel does not redecorate
+the room, which is what a per-model room would do five times in ten seconds.
+
+### The arrows had to become real buttons
+
+A knock-on, and not a style preference. The nav chevrons were bare at 45% opacity with a
+scrim that appeared only on hover, and the stated argument for that was *"at rest the
+arrow is over the dark edge of the cyclorama and needs nothing"*.
+
+**Every word of that depended on the backdrop being a dark gradient.** A photograph has no
+reliably dark corners — the left edge of a sunrise is bright sky — and a hover scrim
+cannot help, because you have to find a control before you can hover it. They are round
+glass discs now. The host project reached the identical conclusion from the identical
+starting point, which is worth knowing before anyone argues them back to bare chevrons.
+
+The nameplate stays bare, but it gained a **text shadow**: it sits at the top centre,
+and every one of the six is an outdoor HDRI, so that is sky. Near-white text on a bright
+sky is not readable.
 
 ### She arrives mid-greeting
 
@@ -192,35 +420,19 @@ Three further constraints, each of which is a bug if broken:
 
 `GREETING_CLIP` may be set to `null`, which means "just appear".
 
-### The backdrop is the character's, not the app's
+### The per-character backdrop is gone
 
-**Each model brings her own colours to it.** The pool was one fixed plum for everybody,
-tuned against whichever model happened to be default at the time — which is a lighting
-choice with one character and an accident with eight. A pink-haired girl in a white coat
-and a black-twintailed one do not want the same room.
+This section used to describe the backdrop taking its colour from whoever was standing in
+it: `palette` in `MODEL_NAMES` supplied one hue, `.cyclorama` mixed it down toward
+`--void` at three strengths, and it crossfaded over 900 ms via `@property`.
 
-`palette` in [MODEL_NAMES](../frontend/src/lib/constants.js) carries the hues and the
-backdrop uses **only the first one**. The rest of her palette is hers but not the room's:
-two hues in one sweep read as a gradient effect, where one hue at three strengths reads as
-light falling off — which is the entire thing this backdrop is imitating. The secondary
-and any third are stored for other uses.
+The rooms replaced all of it. A photographed room has its own colour and does not want a
+second one mixed in, and there is nothing left here for a per-character hue to tint.
 
-**The hues are in the table and the ratios are in the CSS**, and that split is the point.
-What arrives from `constants.js` are hair and outfit colours — fully saturated, picked to
-be seen on a character. Painted at strength behind her they win: she is supposed to be the
-brightest, most saturated thing in frame, and a wall the same pink as her hair erases her
-silhouette. So `.cyclorama` mixes it down toward `--void` before it reaches a pixel — 34% at the
-centre, 20% at the mid-field, 8% beyond, void at the corners regardless of who is standing
-there. Retune those three numbers in one place rather than eight.
-
-The colour **crossfades over 900 ms** rather than cutting. A CSS gradient cannot be
-transitioned, so `--backdrop-main` is registered with `@property` as `<color>` — that is
-what tells the browser to interpolate it rather than swap strings. It is timed to land inside a carousel transition: the model swaps on an empty
-stage, so the room has finished changing colour before she walks into it. A browser
-without `@property` gets an instant change, which is what this did before.
-
-A model with no `palette` row falls through to the CSS defaults — the original plum this
-rig was lit against — so dropping in a new `.vrm` still works with no edit here.
+**The `palette` data is still in `MODEL_NAMES` and its tests still pass.** Nothing reads
+it. It was kept rather than deleted because it is measured data — eight models loaded and
+looked at — which is cheap to keep and tedious to reproduce. `modelPalette` and
+`modelPaletteForUrl` are live exports with no callers.
 
 ## The model picker
 

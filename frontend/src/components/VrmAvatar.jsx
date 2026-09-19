@@ -2,8 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Vector3 } from 'three';
+import { SRGBColorSpace, TextureLoader, Vector3 } from 'three';
 import { VISEMES, DEFAULTS } from '@/lib/constants.js';
+import { matcapUrlFor, rigFor } from '@/lib/backgroundLibrary.js';
+import { resolveLighting } from '@/lib/stageLighting.js';
+import { applyMtoonResponse } from '@/lib/mtoonResponse.js';
+import { applyMatcap } from '@/lib/applyMatcap.js';
 import { compositeBones, lerpPoses, addPoses, blendPoseSubset, scalePose } from '@/lib/composite.js';
 import { blendPosesShortest } from '@/lib/quat.js';
 import { POSES } from '@/lib/poses.js';
@@ -127,6 +131,107 @@ export default function VrmAvatar({ onLoaded, onProgress, onError }) {
       // retain() below, against the pure decision in lib/carousel.js.
     };
   }, [modelUrl, onLoaded, onProgress, onError]);
+
+  // ---------------------------------------------------------------------------
+  // PUT HER IN THE ROOM
+  // ---------------------------------------------------------------------------
+  // Three separate things, all of which have to happen for her to look like she
+  // is standing in the photograph rather than in front of it:
+  //
+  //   1. RETUNE THE MATERIALS so they respond to light at all. This is the big
+  //      one. An MToon surface has exactly one way to vary with light direction,
+  //      and the shipped VRoid models disable it — `_ShadeColor == _Color` over
+  //      most of the body, `_ShadeShift = -0.8` on every face material — so
+  //      every visible pixel evaluated to `albedo * a constant`. No light rig
+  //      could have fixed that, which is why it went unfound for so long. The
+  //      measurements are in mtoonResponse.js.
+  //
+  //   2. DRESS HER IN THE ROOM'S REFLECTION via the matcap, which is the only
+  //      route a room has to her surface: MToon cannot sample an environment
+  //      map, so `scene.environment` does precisely nothing. See applyMatcap.js.
+  //
+  //   3. LET HER SHADOW HERSELF. Cast AND receive on every mesh — the depth in
+  //      an anime model comes mostly from SELF-shadowing, her chin onto her neck
+  //      and her fringe onto her forehead, and `receiveShadow` alone gives none
+  //      of it. It is also the only shadowing that shows at all right now, since
+  //      GroundShadow is deliberately not mounted.
+  //
+  // Keyed on the room as well as the model, so walking into another room
+  // re-dresses whoever is already standing there.
+  //
+  // NOT keyed on `lighting`. The response tuning is read transiently, so
+  // changing one of the shade* values at runtime would not re-apply here. That
+  // is fine today because none of them has a slider — they are DEFAULTS, judged
+  // by editing constants.js and reloading. Give one a slider and it will appear
+  // to do nothing until you add it to these deps, which is the sort of silence
+  // this project has paid for before.
+  //
+  // EVERY STEP UNDOES ITSELF, and that is load-bearing rather than tidy:
+  // vrmCache keeps the whole cast parsed and hands back the SAME object every
+  // time the carousel comes round to her again. Without the undo the second
+  // visit retunes the result of the first — shadeDepth compounding on itself
+  // until she is black — and a room change leaves the old room's bounce tint
+  // sitting in her shadows.
+  const room = useAvatarStore((s) => s.room);
+  useEffect(() => {
+    if (!vrm) return undefined;
+
+    const { response } = resolveLighting(
+      rigFor(room),
+      useAvatarStore.getState().lighting,
+    );
+    const undoResponse = applyMtoonResponse(vrm.scene, response);
+
+    const shadowed = [];
+    vrm.scene.traverse((object) => {
+      if (!object.isMesh && !object.isSkinnedMesh) return;
+      shadowed.push([object, object.castShadow, object.receiveShadow]);
+      object.castShadow = true;
+      object.receiveShadow = true;
+    });
+
+    let live = true;
+    let undoMatcap = () => {};
+    let texture = null;
+
+    const matcapUrl = matcapUrlFor(room);
+    if (matcapUrl) {
+      new TextureLoader().load(
+        matcapUrl,
+        (loaded) => {
+          // She can have left the room — or the stage — while ~30 KB is in
+          // flight. Applying here would dress a model nothing is rendering and
+          // leave a texture with no owner left to dispose it.
+          if (!live) {
+            loaded.dispose();
+            return;
+          }
+          loaded.colorSpace = SRGBColorSpace;
+          texture = loaded;
+          undoMatcap = applyMatcap(vrm.scene, loaded);
+        },
+        undefined,
+        () => {
+          // Loud, where the rest of this file is quiet. A matcap that fails to
+          // load looks EXACTLY like one that loaded and did nothing, because
+          // `matcapFactor` ships black on VRoid exports — without this line the
+          // two are indistinguishable from outside.
+          console.error(`[VrmAvatar] matcap failed: ${matcapUrl}`);
+        },
+      );
+    }
+
+    return () => {
+      live = false;
+      undoMatcap();
+      undoResponse();
+      for (const [object, cast, receive] of shadowed) {
+        object.castShadow = cast;
+        object.receiveShadow = receive;
+      }
+      texture?.dispose();
+    };
+  }, [vrm, room]);
 
   // Warm the whole cast, and let go of anything no longer in it.
   //

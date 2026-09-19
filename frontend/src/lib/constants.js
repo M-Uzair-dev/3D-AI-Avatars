@@ -2,7 +2,17 @@
 //
 // CHOSEN BY EYE. That matters, because it closes the oldest open question in
 // the project: every previous default was picked for its LICENCE and nobody had
-// compared the eight on screen. Rin was picked by looking at them.
+// compared the eight on screen.
+//
+// Rin held this for a while and Sakura has it now, picked against the rooms
+// rather than against the old flat backdrop — which is a different test. Pink
+// hair and a white coat are the hardest thing in the cast for a room to light
+// without washing out, so the default is also the one that shows soonest when
+// the lighting is wrong.
+//
+// SHE HAS NO VOICE FALLBACK, and does not need one: her voice is a PREMADE,
+// which works on every plan and cannot be withdrawn. Only the three Library
+// voices carry a spare. See MODEL_NAMES below.
 //
 // The licence filter still applies and still comes first — every model in
 // public/ declares that commercial use is permitted, which is what the host app
@@ -17,7 +27,7 @@
 // throws, the hands are simply in the wrong place. Now that there IS a settled
 // model, re-measuring them against her is worth doing once rather than twice.
 // See docs/06-poses-and-rig.md.
-export const MODEL_URL = '/free-2.vrm';
+export const MODEL_URL = '/free-1.vrm';
 
 /**
  * What she does when she first appears.
@@ -493,19 +503,112 @@ export const DEFAULTS = {
     // flattens all form shading. The old 0.6 here was the single biggest cause
     // of the washed-out look. Fill comes from the hemisphere light instead,
     // which has direction and therefore still shades.
-    ambient: 0.06,
-    hemisphere: 0.36,
-    key: 0.82,
-    fill: 0.2,
+    //
+    // ── Scaled to 0.6x when the rooms arrived ──────────────────────
+    // These were 0.06 / 0.36 / 0.82 / 0.2, tuned against the flat CSS cyclorama
+    // that the rooms replaced. Against a real photographed room they read as
+    // washed out: the fill was doing so much work that her shadow side was
+    // nearly as bright as her lit side, so there was no form to see.
+    //
+    // CONTRAST ON AN MTOON MODEL IS THE RATIO BETWEEN THE KEY AND EVERYTHING
+    // ELSE, NOT THE EXPOSURE. Exposure moves both ends together and changes
+    // nothing about the separation. To make her read harder, widen the gap:
+    // raise `key`, lower `hemisphere` and `fill`. These four are the dial, in
+    // that order of effect.
+    //
+    // Ambient, hemisphere and fill ARE the environment's light on her — the sky,
+    // the bounce, and the return off the ground. The key is the room's sun or
+    // its streetlight, and is deliberately NOT scaled with them: dividing the
+    // two is what raises contrast rather than merely darkening her.
+    ambient: 0.018,
+    hemisphere: 0.132,
+    key: 1.05,
+    fill: 0.072,
     // The rim is the biggest single win for an anime model. A light from behind
     // and above separates the silhouette from a dark background and catches the
     // hair. It is most of why VTuber renders look good.
+    //
+    // Kept at full strength now there are rooms rather than lowered with the
+    // rest. A photograph is a far busier thing to be lost against than a
+    // gradient was, so the light separating her silhouette matters MORE.
     rim: 1.0,
+    // A starting point only. Each room carries its own exposure, baked with the
+    // same tone curve as its skybox, and choosing a room seeds this from it —
+    // see stageLighting.js and setRoom in the store.
     exposure: 0.78,
     // Slight warmth on the key does a lot of the "friendly" work for free.
+    // It applies to the studio fallback only: a room's key takes its colour
+    // FROM the room, which is most of the point of baking one.
     warmth: 0.35,
+
+    // ── How soft the key's shadow edge is ───────────────────────
+    // three 0.185's PCF path is a five-tap Vogel disk scaled by
+    // `shadowRadius * texelSize`, so this is the penumbra dial. Above about 8
+    // the penumbra is wider than the features casting it and her chin stops
+    // shadowing her neck.
+    shadowRadius: 4,
+
+    // ── The contact shadow ────────────────────────────────
+    // Dials for GroundShadow, which is PORTED BUT NOT MOUNTED — see the
+    // commented call site in Scene.jsx and the caveat in GroundShadow.jsx.
+    // They live here so that resolving the lighting does not depend on whether
+    // it happens to be mounted.
+    contact: 0.38,
+    // How far the plane extends, in metres. Also sizes the key's shadow camera.
+    contactSize: 5,
+
+    // ── How much the body responds to light at all ──────────────────
+    // See mtoonResponse.js. These are the difference between a character
+    // standing in a room and a sticker colour-matched to a photograph, and they
+    // are MATERIAL UNIFORMS rather than light settings — the lights were never
+    // the problem. An MToon surface has exactly one way to vary with the
+    // direction of the light, and the shipped VRoid models disable it.
+    //
+    // shadeDepth      how dark the shadow side is, as a fraction of the lit
+    //                 side. THE dial for "she looks flat". 1.0 is what the
+    //                 models ship with, which is why they looked flat.
+    // shadeSoftness   caps MToon's `shadingToonyFactor`. Lower is a wider,
+    //                 softer terminator. Above ~0.8 it is a hard toon step.
+    // shadeTerminator floors MToon's `shadingShiftFactor`. 0 puts the lit/shade
+    //                 boundary at the 90-degree edge, where a real one is; the
+    //                 faces ship at -0.8, which is why they did not respond to
+    //                 the key at all.
+    // shadeTintAmount how much of the room's bounce colour mixes into the
+    //                 shadow. Small: this is reflected light inside a shadow,
+    //                 not a tint over the whole body.
+    //
+    //                 0.3 -> 0.18, judged by eye in a browser: the room was
+    //                 reading as a colour cast ON her rather than as bounce
+    //                 inside her shadows, which is the exact failure this whole
+    //                 file exists to undo, arriving through the one door still
+    //                 open to it. The shadows keep the room's hue; they no
+    //                 longer take its saturation.
+    shadeDepth: 0.62,
+    shadeSoftness: 0.55,
+    shadeTerminator: -0.05,
+    shadeTintAmount: 0.18,
+    // Makes the matcap and the rim obey the lights instead of being added flat.
+    // At the models' shipped 0 they are a constant over the whole body, which
+    // was the other half of the "translucent orange overlay" look.
+    rimLightingMix: 1,
   },
 };
+
+/**
+ * The room she opens in.
+ *
+ * Hard noon sun on warm stone. Chosen over the softer garden deliberately: a
+ * high, hard key is the room that best SHOWS the thing this milestone fixed —
+ * a strong terminator across the face, a real shadow side, and her own form
+ * reading in three dimensions. Soft daylight flatters everyone and proves
+ * nothing, which makes it the safer default and the worse first impression.
+ *
+ * It is also the harshest test of the retune. If a material is going to look
+ * wrong it will look wrong here first, which is where you want to find out.
+ *
+ * One constant — change it and the app opens somewhere else.
+ */
+export const DEFAULT_ROOM = 'palermo-square';
 
 /**
  * Camera framings, as intentions rather than coordinates.

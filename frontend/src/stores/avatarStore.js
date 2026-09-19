@@ -1,5 +1,8 @@
 import { create } from 'zustand';
-import { DEFAULTS, MODEL_URL, DEFAULT_FRAMING, modelVoiceForUrl } from '@/lib/constants.js';
+import {
+  DEFAULTS, MODEL_URL, DEFAULT_FRAMING, DEFAULT_ROOM, modelVoiceForUrl,
+} from '@/lib/constants.js';
+import { rigFor } from '@/lib/backgroundLibrary.js';
 import { DEFAULT_POSE, POSES } from '@/lib/poses.js';
 import { DEFAULT_CONVERSATION_STATE } from '@/lib/postures.js';
 import { speechEngine } from '@/audio/speechEngine.js';
@@ -160,8 +163,27 @@ const initialState = {
 
   // Stage: lighting and camera framing, live-tunable for the same reason the
   // pose values are — these are numbers you judge by eye, not by arithmetic.
+  //
+  // WHAT THE ROOM DECIDES, AND WHAT THIS DOES. Since the rooms replaced the CSS
+  // cyclorama the two overlap, and the split is: the ROOM decides the key and
+  // fill POSITIONS, every light COLOUR and the exposure; this object decides
+  // the INTENSITIES and the material response tuning. See stageLighting.js.
+  //
+  // Exposure is the one value they both have an opinion about, and the room
+  // wins by SEEDING it here whenever the room changes — so the Stage tab's
+  // slider goes on working and reads the room's own number, instead of silently
+  // fighting a value it cannot see.
   lighting: { ...DEFAULTS.lighting },
   framing: DEFAULT_FRAMING,
+
+  // Which room she is standing in.
+  //
+  // An id from backgroundLibrary.js, never a URL — the three assets per room are
+  // derived from the id, so re-baking or moving a room is not a broken link
+  // here. It is global rather than per-model on purpose: changing who is on
+  // stage does not redecorate the room she is standing in, which is what the
+  // carousel would otherwise do five times in ten seconds.
+  room: DEFAULT_ROOM,
 
   // Debug readout, written from the render loop
   debug: { weights: {}, fps: 0 },
@@ -353,6 +375,27 @@ export const useAvatarStore = create((set) => ({
     set((state) => ({ lighting: { ...state.lighting, [key]: value } })),
 
   setFraming: (framing) => set({ framing }),
+
+  /**
+   * Move her to another room.
+   *
+   * Seeds `lighting.exposure` from the room's baked value in the same set, so
+   * the two can never be observed disagreeing — the skybox was tone-mapped with
+   * that exposure, and a frame rendered at the old one shows a backdrop and a
+   * character that were exposed differently.
+   *
+   * A room with no baked exposure keeps whatever is on the slider.
+   */
+  setRoom: (room) =>
+    set((state) => {
+      const exposure = rigFor(room)?.exposure;
+      return {
+        room,
+        lighting: Number.isFinite(exposure)
+          ? { ...state.lighting, exposure }
+          : state.lighting,
+      };
+    }),
 
   setDebug: (partial) =>
     set((state) => ({ debug: { ...state.debug, ...partial } })),

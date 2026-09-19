@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useCallback, useRef, useState } from 'react';
 import { useAvatarStore } from '@/stores/avatarStore.js';
-import { modelPaletteForUrl, GREETING_CLIP } from '@/lib/constants.js';
+import { GREETING_CLIP } from '@/lib/constants.js';
 import MissingModelNotice from './MissingModelNotice.jsx';
 import ControlPanel from './ControlPanel/index.jsx';
 import Controls from './Controls/index.jsx';
@@ -42,10 +42,6 @@ const VrmAvatar = dynamic(() => import('./VrmAvatar.jsx'), { ssr: false });
  */
 export default function AvatarStage({ dev = false }) {
   const [progress, setProgress] = useState(0);
-  // The room takes its colour from whoever is standing in it. Subscribed here
-  // rather than read in the frame loop because it is a DOM layer behind the
-  // canvas, not something the renderer touches — see the cyclorama note below.
-  const modelUrl = useAvatarStore((s) => s.modelUrl);
   const [error, setError] = useState(null);
   const [vrm, setVrm] = useState(null);
 
@@ -100,19 +96,19 @@ export default function AvatarStage({ dev = false }) {
     );
   }
 
-  // Her main colour only. The rest of the palette is hers but not the room's —
-  // one hue at three strengths reads as a lit sweep, two hues read as a
-  // gradient effect. A model with no palette row falls through to the CSS
-  // default, the plum this lighting rig was originally tuned against.
-  const palette = modelPaletteForUrl(modelUrl);
-  const backdrop = palette ? { '--backdrop-main': palette[0] } : undefined;
-
   return (
-    // The cyclorama is a DOM layer BEHIND a transparent canvas rather than a
-    // scene background, so it costs nothing per frame and can be tuned in CSS —
-    // including being recoloured per character, which as a three.js background
-    // would have meant touching the renderer.
-    <div className="cyclorama stage-height relative w-full overflow-hidden" style={backdrop}>
+    // NO BACKDROP LAYER HERE ANY MORE.
+    //
+    // This used to be `.cyclorama` — a CSS sweep behind a transparent canvas,
+    // recoloured per character from her own palette. It was cheap, it cost
+    // nothing per frame, and it could not survive her standing in a real room:
+    // a DOM layer does not move when the camera moves, so with a photograph
+    // behind her, orbiting read as her spinning inside it.
+    //
+    // The room is `scene.background` now and the canvas is opaque — see
+    // Room.jsx. `--void` is only what shows for the frame before the skybox
+    // lands.
+    <div className="stage-height relative w-full overflow-hidden bg-[var(--void)]">
       {scene}
       <MissingModelNotice progress={progress} error={error} />
       {/* Stage furniture rather than bar controls: her name above her, and an

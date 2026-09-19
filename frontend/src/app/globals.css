@@ -18,15 +18,9 @@
  * actually made of.
  */
 :root {
-  /* Ground. The corners of the cyclorama fall to this. */
+  /* The page under everything, and what shows behind the canvas for the one
+     frame before a room's skybox has loaded. */
   --void: #08090b;
-  /* Centre of the light pool. Warm-lifted rather than a lighter grey: a
-     neutral lift reads as fog, a warm one reads as light.
-     Raised from #232026, which was measured on screen as very nearly the void
-     itself — a gradient you have to be told is there is not a gradient. */
-  --pool: #3a3340;
-  /* The hot centre of the sweep, right behind her head. */
-  --pool-hot: #4a4152;
 
   /* Control surfaces. */
   --surface: #16181c;
@@ -96,76 +90,23 @@ body {
 }
 
 /*
- * The cyclorama: a photographic backdrop, not a linear gradient.
+ * THE CYCLORAMA IS GONE. It was here, and this note is what replaced it.
  *
- * A studio sweep is not a flat wash and not a top-to-bottom fade — it is a pool
- * of light behind the subject falling off to darkness at the edges. Two layers
- * do it:
+ * It was a CSS sweep behind a transparent canvas — a radial pool of light
+ * centred behind her head, falling off to `--void` at the corners, recoloured
+ * per character from her own palette and crossfaded over 900ms with @property.
+ * It was good, and it was cheap: a DOM layer costs nothing per frame.
  *
- *   1. a large radial pool centred just above and behind where her head sits,
- *      so the eye is drawn to her face for free;
- *   2. a slight vertical grade, because the air in a real room is lighter than
- *      the ground.
+ * It could not survive her standing in a real room. A DOM layer does not move
+ * when the camera moves, so with a photograph behind her, orbiting read as her
+ * spinning inside it. The backdrop is `scene.background` now — a baked equirect
+ * skybox per room, world-fixed, with the parallax free. See Room.jsx.
  *
- * Both are static. Nothing on this page animates on its own — that belongs to
- * her, and an hours-long session is exactly where a breathing background
- * becomes unbearable.
+ * `--pool` and `--pool-hot` went with it — they were the sweep's two tints and
+ * nothing else ever referenced them. `--void` stays: it is the colour behind
+ * the canvas for the frame before a skybox lands.
  */
-.cyclorama {
-  /*
-   * The character's ONE colour, set inline from her palette. Her secondary is
-   * deliberately not used here: two hues in one sweep read as a gradient effect
-   * rather than as a lit room, and the backdrop's whole job is to look like
-   * light falling off rather than like a graphic. The whole pool is one hue at
-   * three strengths.
-   *
-   * Defaults to the original fixed plum, so a model with no palette row still
-   * gets the backdrop this rig was lit against rather than nothing.
-   */
-  --backdrop-main: var(--pool-hot);
 
-  /*
-   * THE RATIOS ARE THE LIGHTING DECISION, and they live here rather than in the
-   * palette table for that reason. What arrives from constants.js are hair and
-   * outfit colours — fully saturated, chosen to be seen at a glance on a
-   * character. Put one behind her at strength and the backdrop wins: she is
-   * supposed to be the brightest, most saturated thing in frame, and a wall
-   * the same pink as her hair erases her silhouette.
-   *
-   * So each one is mixed down toward `--void` before it is ever painted. The
-   * centre keeps the most of it, because that is the pool of light behind her
-   * head; by the mid-field it is half gone; the corners are void regardless of
-   * who is standing there, which is what keeps the vignette doing its job.
-   */
-  background:
-    radial-gradient(
-      62% 46% at 50% 28%,
-      color-mix(in oklab, var(--backdrop-main) 34%, var(--void)) 0%,
-      color-mix(in oklab, var(--backdrop-main) 20%, var(--void)) 38%,
-      color-mix(in oklab, var(--backdrop-main) 8%, var(--void)) 68%,
-      var(--void) 100%
-    ),
-    linear-gradient(to bottom, #14141c 0%, var(--void) 72%);
-
-  /*
-   * Crossfade rather than cut when the cast changes. A gradient cannot be
-   * transitioned, but the colours feeding it can — once they are registered
-   * with @property below, so the browser knows to interpolate them as colours
-   * rather than as strings.
-   *
-   * Timed to land inside the carousel's transition: the model swaps on an empty
-   * stage, so the room has finished changing colour by the time she walks into
-   * it. Browsers without @property support get an instant change, which is what
-   * this did before and is not a failure.
-   */
-  transition: --backdrop-main 900ms ease;
-}
-
-@property --backdrop-main {
-  syntax: '<color>';
-  inherits: true;
-  initial-value: #4a4152;
-}
 
 
 /*
@@ -224,11 +165,20 @@ body {
  * that cut instantly while the stage was empty read as a caption being
  * corrected rather than as somebody new arriving.
  *
- * Rises as it fades in, which is the same direction the cyclorama's light
- * falls. Reduced motion gets the fade without the travel.
+ * Rises as it fades in. Reduced motion gets the fade without the travel.
  */
 .model-nameplate {
   animation: nameplate-in 520ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  /* The one thing standing between her name and a bright sky.
+     It has no plate behind it — deliberately, see ModelNav — and the rooms put
+     sky at the top of the frame — every one of the six is an outdoor HDRI —
+     where near-white text on a bright sky is simply not readable. Two shadows
+     rather than one: a tight dark halo for the letterforms, and a wider soft one
+     that separates the block from whatever is behind it. Costs nothing over the
+     dark rooms. */
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.55),
+    0 2px 12px rgba(0, 0, 0, 0.45);
 }
 
 @keyframes nameplate-in {

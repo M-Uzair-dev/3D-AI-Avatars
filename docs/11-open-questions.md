@@ -28,8 +28,8 @@ Three things are blocking, in this order.
    degrades to the silent mouth this project always had, so nothing is broken and
    nothing is proven. **`npm run dev` and press Speak is the whole cost.**
 3. **Look at everything in §2.** Several sessions changed a great deal and almost none
-   of it has been watched — the carousel, the entrance, the per-model backdrop, the
-   clip-jerk fix, and now the end-of-clip fix. Each was verified against numbers, which
+   of it has been watched — the carousel, the entrance, the rooms and the material
+   retune, the clip-jerk fix, and now the end-of-clip fix. Each was verified against numbers, which
    is not the same as being looked at.
 
 ~~**Commit**~~ — **done**, `8b210a3`, one honest commit of the whole companion layer.
@@ -260,10 +260,11 @@ fixes has been looked at.** Specifically open:
   `AbortController`, §5 — so one parse can still land mid-transition during warm-up, and
   never after it.
 - **the nav on the stage rather than the bar.** Edge arrows at left and right centre, her
-  name across the top, neither on a `lit-surface` panel. Whether bare chevrons hold up
-  against a brightly lit dress is the open question; there is a radial scrim under each
-  one on hover for exactly that, and it has never been seen. The arrows sit over the
-  darkest corners of the cyclorama at rest, which is the argument for no panel.
+  name across the top. ~~Whether bare chevrons hold up against a brightly lit dress.~~
+  **Answered by the rooms, and answered against the chevrons:** over a photograph there
+  are no dark corners to sit in, so they are round glass discs now and the name carries a
+  text shadow. What is still unseen is whether the discs read as controls laid ON the
+  scene or as chrome stuck over it.
 - **the nameplate's fade.** The only unprompted motion in the production UI. It runs at
   the midpoint of a transition, while she is off stage, which is the argument for it
   existing at all — if it reads as a competing animation rather than as an arrival, it is
@@ -279,16 +280,26 @@ fixes has been looked at.** Specifically open:
   phase progress is smoothstepped now, so she leaves and lands slowly. If the landing
   still looks abrupt with the springs already suppressed, that easing is where to look
   rather than the timings.
-- **the per-model backdrop.** Eight palettes, none of them seen. They are hair and outfit
-  colours mixed down toward the void at 34/22/9% — see [14](14-stage-and-lighting.md).
-  The failure to watch for is a backdrop that competes with her rather than sitting
-  behind her, which is the same mistake as the first lighting rig and is fixed in the
-  same place: lower the ratios in `.cyclorama`, not the table. **Mio's near-black second
-  colour is the one most likely to look wrong**, and Sakura's and Kuro's whites are the
-  most likely to be too bright.
-- **the backdrop crossfade.** 900 ms, timed to finish while the stage is empty during a
-  carousel move. Switching models from the workbench's Stage tab has no such gap, so
-  there the room changes colour with her standing in it.
+- ~~**the per-model backdrop.**~~ ~~**the backdrop crossfade.**~~ **Both obsolete.** The
+  CSS cyclorama, the eight palettes feeding it and the 900 ms `@property` crossfade were
+  all replaced by baked HDRI rooms. Neither was ever looked at, and neither exists now.
+  The `palette` data survives in `MODEL_NAMES` with nothing reading it — see
+  [14](14-stage-and-lighting.md).
+- **the rooms, and what they do to her.** Six of them, and the whole material retune
+  underneath. Watch for: whether the key really comes from where each photograph says it
+  does; whether her shadow side reads as form or as dirt; whether the rim separates her
+  on **Snowy Field**, which is the one room it exists for. Palermo Square is the default
+  precisely because a hard noon key shows a wrong material soonest.
+- **the three unmeasured models.** The MToon retune was measured across 87 materials on
+  **five** bodies — `free-1/2/3/5/6`. `haishin-chan`, `untitled-6` and `untitled-7` have
+  never been through it. Every uniform derives from each material's own lit colour and
+  every clamp is one-directional, so it should generalise; that is reasoning, not
+  measurement, and reasoning about this renderer is what produced the original bug.
+- **the carousel walked twice round one room.** If the retune's undo is wrong, `shadeDepth`
+  compounds on the second visit and she darkens. The undo exists for exactly this and has
+  never been watched.
+- **`shadeTintAmount` at 0.18.** Dialled down from 0.30 by eye after one look. The room's
+  bounce in her shadows should read as reflected light, not as a colour cast on her.
 - **the fingers under a clip.** `Peace sign` is the one to watch, since its entire content
   is a hand shape and it is what surfaced the bug.
 - **the body under a clip, now that every additive layer fades out.** She no longer
@@ -323,8 +334,8 @@ fixes has been looked at.** Specifically open:
   finished. Some of that was the one-frame hole and is fixed. The rest is spring bones
   settling after motion stops, which is correct physics and may simply need the
   `clipFadeMs` fade-out lengthening if it reads as unfinished.
-- **the backdrop using one hue.** Dropped from two on request — the secondary is still in
-  the palette table and unused by the room.
+- ~~**the backdrop using one hue.**~~ Obsolete with the cyclorama. The palette table is
+  still there and nothing reads it.
 - **whether the three earlier fixes actually land.** In order of how likely they are to be
   wrong: that a hidden stale model is really hidden (it is a `visible = false` on the
   root, so a second model rendering from somewhere else would defeat it); that the

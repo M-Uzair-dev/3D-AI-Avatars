@@ -197,7 +197,13 @@ describe('model voices', () => {
     it('resolves a fallback from a filename and from a store URL alike', () => {
       expect(modelVoiceFallback('free-2.vrm')).toBe(MODEL_NAMES['free-2.vrm'].voiceFallback);
       expect(modelVoiceFallbackForUrl('/free-2.vrm')).toBe(MODEL_NAMES['free-2.vrm'].voiceFallback);
-      expect(modelVoiceFallbackForUrl(MODEL_URL)).toBeTruthy();
+      // The claim is that the two spellings AGREE, so assert that rather than
+      // that the default model's fallback is truthy. Truthiness here was a proxy
+      // for "the default happens to use a Library voice", which is not a fact
+      // about these two functions at all — it went red the day the default
+      // became a premade-voice model, with nothing about the lookup broken.
+      const file = MODEL_URL.replace(/^\//, '');
+      expect(modelVoiceFallbackForUrl(MODEL_URL)).toBe(modelVoiceFallback(file));
     });
 
     it('is null for a model with no fallback, rather than throwing', () => {

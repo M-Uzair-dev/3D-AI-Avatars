@@ -1,6 +1,7 @@
 'use client';
 
 import AnimationMenu from './AnimationMenu.jsx';
+import RoomMenu from './RoomMenu.jsx';
 import StateBar from './StateBar.jsx';
 import SpeechBar from './SpeechBar.jsx';
 
@@ -44,6 +45,10 @@ export default function Controls() {
 
         <div className="flex flex-wrap items-center gap-2 pt-2">
           <AnimationMenu />
+          {/* Scenery, so it sits next to Animate rather than getting the width.
+              WHO is on stage is still not here — that is ModelNav, on the stage
+              itself. WHERE she is standing is a setting; who she is is not. */}
+          <RoomMenu />
           <SpeechBar />
         </div>
       </div>
