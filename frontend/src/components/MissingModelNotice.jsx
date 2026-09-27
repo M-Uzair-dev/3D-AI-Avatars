@@ -5,9 +5,10 @@ import { useAvatarStore } from '@/stores/avatarStore.js';
 /**
  * Loading progress, and what to do when the model will not load.
  *
- * This is the only thing a user sees for the first several seconds on a cold
- * cache — the models are ~18 MB — so it is a production surface rather than a
- * development affordance, and it is painted in the stage palette.
+ * This is the only thing a user sees while a model is in flight on a cold cache,
+ * so it is a production surface rather than a development affordance, and it is
+ * painted in the stage palette. It is no longer the only thing on screen: the
+ * room's colour is behind it from the first paint, via StagePoster.
  *
  * The error names the model that ACTUALLY failed, read from the store, not the
  * default from constants. Those are the same file only until someone switches

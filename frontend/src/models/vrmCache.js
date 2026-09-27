@@ -6,7 +6,7 @@
  * ---------------------------------------------------------------------------
  * VrmAvatar used to load a model in an effect and deepDispose it in that
  * effect's cleanup. That was airtight — nothing could leak, because the model
- * died with the effect that made it — and it made every model change an 18MB
+ * died with the effect that made it — and it made every model change a whole
  * download with a progress bar in front of it.
  *
  * The carousel cannot have that. A transition that stops to fetch is not a
@@ -14,9 +14,12 @@
  * the button, and "already parsed" means something has to hold them.
  *
  * THE COST IS REAL AND IT IS HERE. Nothing in this file throws when it goes
- * wrong. A retain() that keeps too much leaks ~18MB per model, silently, until
- * the tab is closed — three.js does not free GPU resources on garbage
- * collection, so an unreferenced model is not a freed one. The eviction
+ * wrong. A retain() that keeps too much leaks an entire parsed model, silently,
+ * until the tab is closed — three.js does not free GPU resources on garbage
+ * collection, so an unreferenced model is not a freed one. Note that the figure
+ * to worry about here is the PARSED size, which the asset pipeline did not
+ * change: a texture decodes to the same RGBA surface whether it arrived as a PNG
+ * or as the WebP that replaced it. The eviction
  * DECISION is pure and tested in lib/carousel.js; this file only carries it
  * out. That split is deliberate: the part that can be tested is the part most
  * likely to be wrong.
@@ -125,8 +128,10 @@ export function load(url, { onProgress } = {}) {
  * ---------------------------------------------------------------------------
  * Parsing a VRM is not cheap and the expensive half is not asynchronous:
  * GLTFLoader's parse, removeUnnecessaryVertices and combineSkeletons all run on
- * the main thread, and on an 18MB model that is a visible stall rather than a
- * hitch.
+ * the main thread, and that is a visible stall rather than a hitch. The models
+ * are ~3.5MB on the wire now rather than ~18MB, which shortened the DOWNLOAD and
+ * left this alone — the work here is proportional to vertices and decoded
+ * texels, and both are what they always were.
  *
  * The first cut fired both neighbours at once and did it whenever the current
  * model changed — which meant two of those landing back to back, one of them

@@ -17,7 +17,7 @@
  * an edit here, and the ring does not reshuffle itself between sessions.
  *
  * Pure by mandate — invariant 4. Nothing here knows what a VRM is; it moves
- * strings around. The module that actually holds 18MB of parsed model is
+ * strings around. The module that actually holds the parsed models is
  * models/vrmCache.js, and it asks this file what to keep.
  */
 
@@ -30,11 +30,13 @@
  * in one direction and you are loading again, and loading is the one thing this
  * feature cannot afford to do while she is moving.
  *
- * Keeping the whole cast costs roughly 18MB of source model apiece, and rather
- * more once textures are decoded. That is a real cost on a thermally tight
- * machine and it was taken deliberately: it is paid once, quietly, during
- * warm-up, in exchange for every transition after it being free. Lower this
- * number if memory becomes the problem — `residentUrls` is ordered nearest
+ * Keeping the whole cast costs ~3.5MB of source model apiece to DOWNLOAD — it
+ * was ~18MB before scripts/optimise-models.mjs — and rather more than either
+ * figure once the textures are decoded. That decoded figure is the one that
+ * matters here and the pipeline did not move it: WebP and PNG decode to the same
+ * RGBA surface, so this is still a real cost on a thermally tight machine, taken
+ * deliberately, paid once during warm-up in exchange for every transition after
+ * it being free. Lower this number if memory becomes the problem — `residentUrls` is ordered nearest
  * first, so a cap sheds the models furthest around the ring and both buttons
  * keep working.
  */
@@ -125,7 +127,7 @@ export function residentUrls(urls, url, max = MAX_RESIDENT) {
  *
  * NOTE THE ASYMMETRY with the rest of this file: getting this wrong does not
  * throw, does not fail a test that only checks the ring, and does not show up
- * on screen. It shows up as 18MB a switch, forever. VrmAvatar used to dispose
+ * on screen. It shows up as a whole leaked model a switch, forever. VrmAvatar used to dispose
  * unconditionally on every model change; this function is what replaced that
  * guarantee, so it is the one place in the carousel worth being paranoid about.
  *

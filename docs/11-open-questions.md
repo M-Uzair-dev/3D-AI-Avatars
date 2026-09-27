@@ -72,9 +72,15 @@ restore it.
 **Unverified.** Nobody has watched this deploy. [DEPLOY.md](../DEPLOY.md) lists the
 dashboard overrides to clear if it still 404s.
 
-Also unknown: **the five committed models are 87 MB** of static assets, which is unusual
-for a Vercel deployment and has never been deployed at that size. If a platform limit
-bites, the fix is object storage — nothing in the app assumes the models are same-origin.
+~~Also unknown: the five committed models are 87 MB of static assets.~~ **Resolved.** They
+are **17.6 MB** now — [16-assets-and-loading.md](16-assets-and-loading.md) — which takes the
+platform-limit worry off the table. If one ever reappears, the fix is still object storage:
+nothing in the app assumes the models are same-origin.
+
+Still unverified about the deployment itself: **whether Vercel compresses `.vrm` on the
+wire.** `gzip -6` saved 40% on an *original* model, almost all of it the float morph
+buffers; after the pipeline those are 5× smaller and the textures are already compressed, so
+there is much less left to win. One `curl -I` against a deployed model would settle it.
 
 ## 1a. What is in the repository, and what is not
 
@@ -247,14 +253,19 @@ fixes has been looked at.** Specifically open:
   explains why — and a test pins that the path bends, not that the bend looks like
   anything.
 - **the whole cast resident at once.** The cache was three models and is now all eight —
-  ~18MB of source apiece and more once decoded. Taken deliberately, because three
-  guarantees a stall two steps out and the point of the feature is that nothing loads
-  while she is moving. **This is the number to watch on a thermally tight machine**, and
+  ~3.5MB of source apiece to download, and a good deal more than that once decoded. Taken
+  deliberately, because three guarantees a stall two steps out and the point of the feature
+  is that nothing loads while she is moving. **This is still the number to watch on a
+  thermally tight machine**: the asset pipeline cut the download by 5× and left the DECODED
+  cost alone, because a WebP and a PNG become the same RGBA surface on the GPU. KTX2 is what
+  would move it — [16](16-assets-and-loading.md) — and
   `MAX_RESIDENT` in [carousel.js](../frontend/src/lib/carousel.js) is the one line that
   lowers it; `residentUrls` is ordered nearest-first, so a cap of 3 restores the old
   behaviour without breaking either button.
 - **whether warm-up is invisible.** Eight models download and parse one at a time after
-  the page settles, paused for the length of any transition. The parse is main-thread, so
+  the page settles, paused for the length of any transition. The downloads are now ~28MB
+  in total rather than ~146MB, so the window this happens in is much shorter; the parse
+  cost per model is unchanged. The parse is main-thread, so
   if the idle animation hitches roughly once per model during the first minute, that is
   this. A fetch already in flight is not cancelled when the pause comes on — there is no
   `AbortController`, §5 — so one parse can still land mid-transition during warm-up, and
@@ -349,9 +360,10 @@ fixes has been looked at.** Specifically open:
   `bodyHalfWidth`, not in a number to nudge.
 - **whether a press that outruns the prefetch is now acceptable.** The target starts
   loading on the press rather than at the midpoint, so it gets the 450 ms exit for free —
-  but on a cold cache an 18MB model will not arrive in 450 ms. The hold stretches, the
-  stage is empty, and the progress readout is showing. That is honest; whether it reads
-  as considered or as broken is an eye question.
+  but on a cold cache a ~3.5MB model still may not arrive in 450 ms. The hold stretches,
+  the stage is empty, and the progress readout is showing. That is honest; whether it reads
+  as considered or as broken is an eye question — and it is a 5× narrower window than the
+  one this was first written about.
 - **whether 120 ms of empty stage reads as a beat or as a glitch.** It is there to hide the
   camera's head-height snap, so it cannot go to zero — but whether it wants to be longer
   is an eye question.
@@ -634,9 +646,8 @@ None block anything.
 
 - **`hold: true` has no user.** Same reasoning — it is the right tool the next time a
   pose needs correcting against a still target, which is what it was built for.
-- **No `AbortController` on the 18 MB model fetch.** A stray Strict-Mode fetch can
-  free-run in dev. A `cancelled` guard prevents state corruption, so the cost is
-  bandwidth only.
+- **No `AbortController` on the model fetch.** A stray Strict-Mode fetch can free-run in
+  dev. A `cancelled` guard prevents state corruption, so the cost is bandwidth only.
 - **Debug FPS is computed from the clamped `dt`**, so a long alt-tab pause reads "10 fps"
   rather than the true near-zero.
 - **`useIdleMotion` recomputes `nextBlinkAt` every frame while blink is toggled off.**
@@ -657,7 +668,11 @@ Decided at design time, recorded so they are not re-litigated:
 | Expression/viseme mouth collision varies by model | **Delegated** to VRM's override flags; the Debug tab makes the result legible. |
 | VRM 0.x has no `'blend'` override, so emotions may fully swallow visemes | **Accepted and surfaced, not patched.** Resting warmth fades to zero during speech as the one concession. |
 | `restingWarmth` at 0.6 is high enough to risk that collision | **Accepted**, because the speech fade should keep it theoretical. First number to pull down if the mouth ever looks damped. |
-| 18 MB model is a visible cold-cache load | `onProgress` readout; the UI stays interactive throughout. |
+| A model is a visible cold-cache load | **Much smaller than it was**: ~3.5 MB rather than ~18 MB, preloaded from the first byte of HTML, over the room's colour rather than over black — [16](16-assets-and-loading.md). Still visible, so the `onProgress` readout stays and the UI stays interactive throughout. |
+| Blendshape deltas under 0.01 mm were discarded to make morph data sparse | **Accepted, and measured rather than argued.** The largest delta thrown away across all eight models is 0.00999 mm against a largest kept delta of 72 mm. `npm run models:verify` re-derives that figure from the written files on every run. |
+| Morph target NORMALs were dropped, so normals hold the rest pose while a face deforms | **Accepted.** On a two-tone MToon ramp the effect is between subtle and invisible, and it is worth 2.7 MB a model. It is also the **one** pass with a visible consequence, so it is the first thing to reach for if a face looks wrong: `npm run models:optimise -- --keep-morph-normals`. |
+| One model is still at its original 15.2 MB | **Correct, not an oversight.** `untitled-6.vrm` declares `modification=disallow`, so the pipeline refuses her by design. She is `redistribution=disallow` too, so she is never deployed and costs a visitor nothing. |
+| Binary assets are served `immutable` under names with no content hash | **Accepted**, for the round trips it saves. The cost is that re-baking an asset in place will not reach anyone who has already loaded it; a re-bake needs a new filename. Written down in [next.config.mjs](../frontend/next.config.mjs), [DEPLOY.md](../DEPLOY.md) and [16](16-assets-and-loading.md) rather than left to be discovered. |
 | The voice is rented, not owned | **Accepted.** The hosted API has no cloning and no custom voices, so the eleven on offer are the whole set and the terms are the provider's rather than something readable in a file. A distinctive voice means changing provider. |
 | Replies leave the infrastructure to be spoken | **Accepted**, as the cost of deploying to Vercel at all. A local engine was built and removed — [15](15-voice-and-tts.md) records why. |
 | Per-character cost on every utterance | **Accepted and bounded.** `TTS_MAX_CHARS` caps one request; the real control is not voicing intermediate chatter or tool output. |

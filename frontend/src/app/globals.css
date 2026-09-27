@@ -103,9 +103,55 @@ body {
  * skybox per room, world-fixed, with the parallax free. See Room.jsx.
  *
  * `--pool` and `--pool-hot` went with it — they were the sweep's two tints and
- * nothing else ever referenced them. `--void` stays: it is the colour behind
- * the canvas for the frame before a skybox lands.
+ * nothing else ever referenced them. `--void` stays: it is what shows if even
+ * the poster below has not arrived.
  */
+
+/*
+ * THE POSTER: something lit, immediately, while she is still downloading.
+ *
+ * ---------------------------------------------------------------------------
+ * WHAT THIS IS FOR
+ * ---------------------------------------------------------------------------
+ * The room's skybox is ~880KB and she is ~4MB, so for the first moment there was
+ * nothing on screen but `--void` and a progress percentage. A black rectangle
+ * with a number in it reads as broken; a lit room with a number in it reads as
+ * loading.
+ *
+ * This is the room's own 320x160 thumbnail — 3 to 7KB, already in the repository
+ * for the room picker — blown up and blurred past recognition. It is NOT trying
+ * to look like the room. An equirect stretched across a 16:9 box is the wrong
+ * picture of the right place, so the blur is doing the real work: what lands is
+ * the room's colour and the direction of its light, which is all that is wanted
+ * from something on screen for half a second.
+ *
+ * ---------------------------------------------------------------------------
+ * WHY NEGATIVE z-index AND NOT AN OVERLAY THAT FADES OUT
+ * ---------------------------------------------------------------------------
+ * A fading overlay would need to know when to go, which means another piece of
+ * load state threaded through the stage, and it would be wrong in both
+ * directions: too early and she pops in over black, too late and it veils her.
+ *
+ * At `z-index: -1` this sits behind the canvas — negative-z positioned elements
+ * paint above the parent's background but below its in-flow content, and the
+ * canvas is in-flow — so it needs no state at all. The canvas is transparent
+ * until Room.jsx sets `scene.background`, and OPAQUE from the moment it does.
+ * The poster is therefore hidden by the skybox arriving, exactly when it should
+ * be, by the same act that makes it unnecessary. Nothing fades and nothing is
+ * scheduled.
+ *
+ * Scaled up past the blur radius because `filter: blur()` samples the element's
+ * own edge and would otherwise leave a soft dark frame around all four sides.
+ */
+.stage-poster {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-position: center;
+  background-size: cover;
+  filter: blur(28px) saturate(1.05);
+  transform: scale(1.18);
+}
 
 
 

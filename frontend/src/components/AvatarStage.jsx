@@ -8,6 +8,8 @@ import MissingModelNotice from './MissingModelNotice.jsx';
 import ControlPanel from './ControlPanel/index.jsx';
 import Controls from './Controls/index.jsx';
 import ModelNav from './Controls/ModelNav.jsx';
+import PreloadStage from './PreloadStage.jsx';
+import StagePoster from './StagePoster.jsx';
 
 // three.js touches `window` at import time, so the Canvas subtree must never be
 // server-rendered. `ssr: false` is only permitted inside a 'use client' file —
@@ -85,6 +87,7 @@ export default function AvatarStage({ dev = false }) {
   if (dev) {
     return (
       <div className="stage-height flex w-full flex-col bg-zinc-900 lg:flex-row">
+        <PreloadStage dev />
         <div className="relative min-h-0 flex-1">
           {scene}
           <MissingModelNotice progress={progress} error={error} />
@@ -106,9 +109,12 @@ export default function AvatarStage({ dev = false }) {
     // behind her, orbiting read as her spinning inside it.
     //
     // The room is `scene.background` now and the canvas is opaque — see
-    // Room.jsx. `--void` is only what shows for the frame before the skybox
-    // lands.
+    // Room.jsx. What shows before the skybox lands is StagePoster, sitting at a
+    // negative z-index behind the canvas; `--void` is only the colour under
+    // that.
     <div className="stage-height relative w-full overflow-hidden bg-[var(--void)]">
+      <PreloadStage />
+      <StagePoster />
       {scene}
       <MissingModelNotice progress={progress} error={error} />
       {/* Stage furniture rather than bar controls: her name above her, and an

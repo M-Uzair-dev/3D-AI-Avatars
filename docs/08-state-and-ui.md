@@ -196,8 +196,8 @@ stage read as a caption being corrected rather than as somebody new arriving.
 
 Changing who is on stage is the one control on this bar that produces a **performance**
 rather than setting a value — she arcs off, and the next one arcs on. A dropdown framed
-that as picking from a list, and ended on a progress bar over an empty stage while 18 MB
-arrived.
+that as picking from a list, and ended on a progress bar over an empty stage while the
+whole model arrived.
 
 What that costs: you can no longer jump to a specific model. The workbench's Stage tab
 keeps the full list, which is where you want it anyway — jumping to a particular rig is
@@ -245,7 +245,7 @@ no constant can be right across three framings, every aspect ratio, and the mobi
 Same fix.
 
 **The lag was a parse, not the arc.** `modelUrl` changes at the midpoint, the retain
-effect re-ran, and it started prefetching the *new* neighbour right there: an 18 MB
+effect re-ran, and it started prefetching the *new* neighbour right there: a whole
 download plus `GLTFLoader.parse`, `removeUnnecessaryVertices` and `combineSkeletons`, all
 on the main thread, in the middle of the animation they would ruin. Under the old menu
 that work happened too — behind a progress bar, while the user was already waiting for
@@ -263,9 +263,11 @@ three turned out to be the number that *guarantees* a stall rather than prevents
 two steps in one direction and you are loading again, and loading is the one thing this
 feature cannot do while she is moving.
 
-So the cache holds all eight. That costs ~18 MB of source model apiece and rather more
-once textures are decoded, which is a real cost on a tight machine and was taken
-knowingly: it is paid once, quietly, after the page settles, and buys a transition that
+So the cache holds all eight. That costs ~3.5 MB of source model apiece to download — it
+was ~18 MB before [16-assets-and-loading.md](16-assets-and-loading.md) — and rather more
+than either figure once the textures are decoded. **The decoded figure is the one that
+matters here and the pipeline did not move it**, so this is still a real cost on a tight
+machine and was still taken knowingly: it is paid once, quietly, after the page settles, and buys a transition that
 can never wait. `MAX_RESIDENT` is the one line to lower if memory becomes the problem —
 `residentUrls` is ordered nearest-first, so a cap sheds the models furthest around the
 ring and both buttons keep working.
@@ -295,8 +297,8 @@ Freeing a model the cache still holds does not throw; it shows up as an untextur
 the next time you switch back to her.
 
 The eviction *decision* is pure and tested; the cache only carries it out. That split is
-deliberate — the failure here is a silent 18 MB leak per switch, so the half that can be
-tested is the half most likely to be wrong.
+deliberate — the failure here is a silently leaked model per switch, so the half that can
+be tested is the half most likely to be wrong.
 
 #### A menu trigger has to look like one
 
@@ -390,8 +392,9 @@ on `lg` and a bottom strip below it. It owns `progress`, `error`, and the loaded
 feeding the first two to [MissingModelNotice.jsx](../frontend/src/components/MissingModelNotice.jsx)
 and the third to the control panel.
 
-The model is 18 MB, so cold-cache load is visible. `onProgress` drives a percentage
-readout and the UI stays interactive throughout.
+A model is ~3.5 MB, so cold-cache load is still visible. `onProgress` drives a percentage
+readout and the UI stays interactive throughout — over the room's colour rather than over
+black, via [StagePoster.jsx](../frontend/src/components/StagePoster.jsx).
 
 [Scene.jsx](../frontend/src/components/Scene.jsx) holds the camera, five store-driven
 lights, and an infinite grid. It defaults to the waist-up `bust` framing, and every

@@ -1,6 +1,13 @@
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
+// Prerendered at build time, for the reason spelled out at the top of
+// api/models/route.js: on Vercel a serverless function is not guaranteed to have
+// public/ on its filesystem at all, and an empty list here empties the Animate
+// menu without erroring anywhere. `next dev` still runs this per request, so a
+// dropped-in clip appears on reload.
+export const dynamic = 'force-static';
+
 // The browser cannot list a directory, so the server does it. This keeps adding
 // an animation to a file-drop rather than a code edit.
 export async function GET() {

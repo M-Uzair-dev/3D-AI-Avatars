@@ -211,12 +211,16 @@ Next-specific code. See [10-invariants.md](10-invariants.md).
 
 The model picker needs a name for each `.vrm`, and four of the ten carry no filename
 worth showing. The name is in the file — a VRM declares its own title, author and
-licence terms in the glTF JSON chunk, a few hundred bytes into an eighteen-megabyte
-file.
+licence terms in the glTF JSON chunk, a few hundred bytes into a multi-megabyte file.
 
 So [vrmMeta.js](../frontend/src/lib/vrmMeta.js) parses that chunk from raw bytes, and
-the route reads only the **first megabyte** of each file to feed it. Reading all ten in
-full would mean pulling 180 MB off disk to render a list.
+the route reads only the **first megabyte** of each file to feed it. Reading them all in
+full would mean pulling the whole cast off disk to render a list.
+
+The route is `dynamic = 'force-static'`, so that read happens once at build time rather
+than per request — which also removes a production-only failure mode, since a serverless
+function is not guaranteed to have `public/` on its filesystem at all. See
+[16-assets-and-loading.md](16-assets-and-loading.md).
 
 It is also the one place in the codebase that branches on VRM version, which looks like
 a violation of [invariant 10](10-invariants.md) and is not: that rule works everywhere

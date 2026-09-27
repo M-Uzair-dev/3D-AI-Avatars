@@ -51,12 +51,15 @@ screen long and every rule on it has already cost someone a debugging session.
 | 13 | [Gestures](13-gestures.md) | Idle gestures, how one is shaped, the authoring rule |
 | 14 | [Stage and Lighting](14-stage-and-lighting.md) | The lighting rig, why the first one washed her out, framing |
 | 15 | [Voice and TTS](15-voice-and-tts.md) | Setup, the audio clock, how the voice fails safely |
+| 16 | [Assets and Loading](16-assets-and-loading.md) | Why it was slow to appear, the model pipeline, caching and preloads |
 
 ## Find it by task
 
 | I want to… | Read |
 |---|---|
-| Switch or add a model | [14](14-stage-and-lighting.md) · licences in [ASSETS.md](../frontend/public/ASSETS.md) |
+| Switch or add a model | [14](14-stage-and-lighting.md) · licences in [ASSETS.md](../frontend/public/ASSETS.md) · optimise it via [16](16-assets-and-loading.md) |
+| Work out why the page is slow to show anything | [16](16-assets-and-loading.md) |
+| Shrink, re-bake or replace a binary asset | [16](16-assets-and-loading.md) — and note the `immutable` rename rule |
 | Change the model carousel or its prefetch | [08](08-state-and-ui.md) |
 | Change how she first appears | [14](14-stage-and-lighting.md) |
 | Work out why a clip jerks or drifts | [03](03-frame-loop.md) |

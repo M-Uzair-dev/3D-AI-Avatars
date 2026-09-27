@@ -237,8 +237,8 @@ export default function VrmAvatar({ onLoaded, onProgress, onError }) {
   //
   // Keeping all eight rather than three neighbours is the difference between a
   // stall you can walk into and one that cannot happen: after warm-up nothing
-  // loads again, ever. It costs ~18MB of source model apiece, taken knowingly —
-  // see MAX_RESIDENT.
+  // loads again, ever. It costs a decoded model apiece, taken knowingly — see
+  // MAX_RESIDENT.
   //
   // Gated on a model already being on screen, so warming never competes with
   // the load the user is actually waiting for at startup.
@@ -254,9 +254,9 @@ export default function VrmAvatar({ onLoaded, onProgress, onError }) {
     if (modelReady) vrmCache.warm(ringOrder(modelRing, modelUrl));
   }, [modelRing, modelUrl, modelReady]);
 
-  // NOT WHILE SHE IS MOVING. A VRM parse is main-thread and an 18MB model is a
-  // visible stall, so no new model is allowed to start loading for the length
-  // of a transition. This is its own effect because it is its own concern: the
+  // NOT WHILE SHE IS MOVING. A VRM parse is main-thread and a visible stall —
+  // shrinking the files cut the download, not the parse — so no new model is
+  // allowed to start loading for the length of a transition. This is its own effect because it is its own concern: the
   // queue's CONTENTS depend on where she is standing, its RUNNING depends on
   // whether she is between marks.
   const transitioning = useAvatarStore((s) => s.carousel !== null);

@@ -119,9 +119,14 @@ file-drop.
 
 All eight are **VRM 0.x** (they declare the `VRM` extension, not `VRMC_vrm`).
 
-They are **gitignored** — the user's assets, licensing theirs to verify. `*.vrm` and
-`*.vrma` are both ignored, so no 18 MB binary is ever committed and nothing here
-redistributes anyone's model or motion.
+`*.vrm` and `*.vrma` are **gitignored by default** — the user's assets, licensing theirs
+to verify — with a per-file exception list for the five models whose own metadata permits
+redistribution, plus the clips. See [DEPLOY.md](../DEPLOY.md) and `npm run licences`. The
+three that forbid it are never committed.
+
+The committed models are ~3–4 MB each rather than the ~18 MB they were exported at; the
+pipeline that did that, and what it deliberately did not touch, is
+[16-assets-and-loading.md](16-assets-and-loading.md).
 
 Two consequences run through the whole codebase, and both are covered in
 [05-expressions.md](05-expressions.md):

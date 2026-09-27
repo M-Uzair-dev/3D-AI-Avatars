@@ -78,24 +78,47 @@ undoing it takes.
 
 So a deployment built straight from a clone has five models, a full Animate menu
 and a working entrance. Nothing errors: the model list is built by reading the
-directory.
+directory — **at build time**, not per request. `/api/models` and
+`/api/animations` are `dynamic = 'force-static'` for exactly that reason: a
+serverless function is not guaranteed to have `public/` on its filesystem, and an
+empty list there would leave the carousel with nowhere to walk while the first
+model still loaded fine.
 
 To deploy the other three the files have to reach the build environment without
 passing through git. Either host them on object storage and point at them, or
 keep a private mirror with the assets committed there.
 
-## The five committed models are 87 MB
+## The five committed models are 17.6 MB
 
-Unusual for a Vercel deployment, and worth knowing before it surprises you.
-They are static files in `public/`, so they are served from the CDN rather than
-through a function, and the local build handles them — but **this has not been
-deployed at that size**, and a platform limit on deployment size is the most
-likely thing to bite.
+They were 87 MB. [docs/16-assets-and-loading.md](docs/16-assets-and-loading.md)
+is what changed and how it is verified; the short version is that the models are
+regenerated from pristine originals by `npm run models:optimise` and checked by
+`npm run models:verify`, which is a gate rather than a report.
 
-If it does, the fix is the same one as for the uncommittable assets: move the
-`.vrm` files to object storage and point `modelUrl` at them. Nothing in the app
-assumes the models are same-origin.
+**The originals are not in the repository.** They live in
+`assets-source/models-original/`, which is gitignored, and for the three models
+that may not be redistributed **that is the only copy of them here**. Back that
+folder up before doing anything clever with it: without it the pipeline cannot be
+re-run, because it deliberately refuses to optimise in place.
+
+A platform limit on deployment size was the most likely thing to bite at 87 MB
+and is no longer a realistic worry. If one ever appears, the fix is the same one
+as for the uncommittable assets: move the `.vrm` files to object storage and
+point `modelUrl` at them. Nothing in the app assumes the models are same-origin.
 
 `MAX_RESIDENT` in [frontend/src/lib/carousel.js](frontend/src/lib/carousel.js)
 is a different question — it bounds how many decoded models sit in browser
-memory, not how many are deployed.
+memory, not how many are deployed, and the pipeline did not change it.
+
+## Binary assets are served `immutable`
+
+`frontend/next.config.mjs` serves `.vrm`, `/animations` and `/backgrounds` with
+`Cache-Control: public, max-age=31536000, immutable`, because they were being
+revalidated on every visit in front of a scene that cannot start until they
+arrive.
+
+**None of those filenames carries a content hash.** So if you re-bake a model or
+a room, a browser that already has the old one will not ask again for a year, and
+the deployment will look like it did not deploy. **A re-baked asset needs a new
+filename** — and, for a model, the matching `MODEL_NAMES` key in
+`frontend/src/lib/constants.js`.

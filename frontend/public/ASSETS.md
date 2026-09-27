@@ -22,8 +22,8 @@ redistribution, so those three are **not** in git.
 
 | File | Character | Commercial | Redistribution | In repo |
 |---|---|---|---|---|
-| `free-1.vrm` | Sakura | allow | allow | ✅ |
-| `free-2.vrm` | Rin *(default)* | allow | allow | ✅ |
+| `free-1.vrm` | Sakura *(default)* | allow | allow | ✅ |
+| `free-2.vrm` | Rin | allow | allow | ✅ |
 | `free-3.vrm` | Hana | allow | allow | ✅ |
 | `free-5.vrm` | Yoru | allow | allow | ✅ |
 | `free-6.vrm` | Kuro | allow | allow | ✅ |
@@ -38,6 +38,23 @@ licence: `corporate_commercial_use=allow`, `modification=allow`,
 `untitled-6.vrm` (Yuki) additionally says `modification=disallow` and
 `credit=necessary` — worth knowing before anyone edits her mesh or ships her
 without a credit line.
+
+**That flag now has teeth.** `npm run models:optimise` rewrites every model in
+`public/` to a fraction of its exported size — see
+[docs/16-assets-and-loading.md](../../docs/16-assets-and-loading.md) — and
+re-encoding a texture is a modification. Yuki is therefore **copied through
+untouched** and is the one model still at its original size. The pipeline reads
+the flag itself and refuses her, so this survives someone re-running it without
+having read this file.
+
+## The committed models are not the files that were downloaded
+
+They are optimised derivatives — ~3–4 MB rather than ~18 MB, same geometry, same
+skeleton, same expressions, textures re-encoded to WebP. The pristine originals
+are in `assets-source/models-original/`, which is gitignored, and **for the three
+models that are not in git that is the only copy here.**
+[docs/16-assets-and-loading.md](../../docs/16-assets-and-loading.md) has what was
+changed, what was deliberately not, and how it is verified.
 
 **A fresh clone is missing three models**, but has every animation. Nothing
 breaks: the model list is built by reading the directory, so the carousel simply

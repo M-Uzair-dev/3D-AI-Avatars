@@ -161,7 +161,7 @@ concealment.
 ### 21. Do not load or parse a model while she is moving
 
 `GLTFLoader.parse`, `removeUnnecessaryVertices` and `combineSkeletons` are main-thread and
-an 18MB model is a visible stall. Warming is paused for the length of a transition and
+a model parse is a visible stall — shrinking the files cut the download, not this. Warming is paused for the length of a transition and
 runs one model at a time. This was the whole of the carousel's "it lags, like a lot" — and
 the reason the cache now holds the entire cast is that a stall which cannot happen does not
 have to be scheduled around.

@@ -438,8 +438,8 @@ looked at — which is cheap to keep and tedious to reproduce. `modelPalette` an
 
 The Stage tab lists every `.vrm` in `public/` with the name, author and licence the file
 declares about itself, and switching is live — the old model is disposed explicitly,
-because three.js does not free GPU resources on garbage collection and these are ~18 MB
-of mesh and texture apiece.
+because three.js does not free GPU resources on garbage collection, and a decoded model is
+a great deal more mesh and texture than its ~3.5 MB on the wire suggests.
 
 The panel is handed a null `vrm` while the next one is in flight, so the Expressions and
 Pose tabs stop enumerating bones against a scene that no longer contains them.
